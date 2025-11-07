@@ -25,15 +25,15 @@ value of memory location 49160. It does this 10 times, demonstrating
 that TASk1 is indeed running.
 
 It then stops TASK1 and ends the BASIC program.
-
-10 SYS2149
-20 GOSUB100
-30 POKE49155,1
-40 GOSUB100
-50 POKE4955,0
+```basic
+10 SYS 2149
+20 GOSUB 100
+30 POKE 49155,1
+40 GOSUB 100
+50 POKE 49155,0
 60 STOP
-100 FORI=0TO9
-110 PRINTIPEEK(49160)
+100 FOR I=0 TO 9
+110 PRINT I PEEK(49160)
 120 NEXT
 130 RETURN
-
+```

@@ -3,7 +3,7 @@
 
 USRADD = $0311
 CINV   = $0314
-TIME_SLICES = 20    ; Unit is Jiffies, 1/60 of a second
+TIME_SLICES = 0    ; Unit is Jiffies, 1/60 of a second
 COMBYT = $B7F1
 VARTAB = $2D
 STREND = $31
@@ -36,6 +36,8 @@ MEMSIZ = $37
 END    = $80
 FOR    = $81
 NEXT   = $82
+GOTO   = $89
+IF     = $8b
 GOSUB  = $8d
 RETURN = $8e
 STOP   = $90
@@ -43,31 +45,22 @@ POKE   = $97
 PRINT  = $99
 SYS    = $9e
 TO     = $a4
+THEN   = $a7
 EQU    = $b2
+USR    = $b7
 PEEK   = $c2
+
+; 10 SYS 49152
+; 20 T=USR(1)
+; 30 IF T=1 THEN 100
+; 40 PRINT "HELLO, WORLD" TI
+; 50 GOTO 40
+; 100 FORI=0TO15:POKE53281,I:NEXT:GOTO100
+
+
+
                 .cpu "6502"
-                *= $C000   ; BASIC header
-;                .word (+), 10
-;                .null SYS, format("%d", start)
-;+               .word (+), 20
-;                .null GOSUB, "100"
-;+               .word (+), 30
-;                .null POKE, format("%d,1", FLG1)
-;+               .word (+), 40
-;                .null GOSUB, "100"
-;+               .word (+), 50
-;                .null POKE, format("%d,0", FLG1)
-;+               .word (+), 60
-;                .null END
-;+               .word (+), 100
-;                .null FOR, "I", EQU, "0", TO, "9"
-;+               .word (+), 110
-;                .null PRINT, "I", PEEK, "(", format("%d", DATA), ")"
-;+               .word (+), 120
-;                .null NEXT
-;+               .word (+), 130
-;                .null RETURN
-;+               .word 0
+                *= $C000   ; 0801 BASIC header
 
 ;  7 Ready to Run
 ;  6 BASIC task, if set, then all BASIC data is saved to REU
@@ -405,9 +398,6 @@ XFER_BASIC_XY:
 
 
 
-
-;0899
-;* = $c000
 TS_ENABLE       .BYTE ?
 SP0:            .BYTE ?
 SP1:            .BYTE ?

@@ -50,12 +50,12 @@ EQU    = $b2
 USR    = $b7
 PEEK   = $c2
 
-; 10 SYS 49152
-; 20 T=USR(1)
-; 30 IF T=1 THEN 100
-; 40 PRINT "HELLO, WORLD" TI
-; 50 GOTO 40
-; 100 FORI=0TO15:POKE53281,I:NEXT:GOTO100
+;10 sys 49152
+;20 t=usr(1)
+;30 if t=1 then 100
+;40 print "hello, world" ti
+;50 goto 40
+;100 fori=0to15:poke53281,i:next:goto100
 
 
 
@@ -142,8 +142,65 @@ addtask
                 TXS
                 RTS
 
+
+; USR(.)[,...]
+; 0   GET PID
+; 1   Fork
+; 2   Forbid
+; 3   Permit
+; 4   RemTask(task)
+; 5   SetTaskPri <PID>,<GRP/PRI>
+; 6   GetTaskPri <PID>
+; 7   Wait(task, signalSet)
+; 8   Signal(task, signalSet)
+
+
+; PRIORITY[]
+;   6-7 BASIC_INSTANCE 0-3
+;   3-5 GROUP          0-7
+;   0-2 PRIORITY       0-7
+
+; QUANTUM[] (Time Slice)
+;   Jiffies to run before pre-empting allowed
+; WAITING[]     If 0, then its runnable
+; SIGNAL[]   Can signal before wait -- wait will return immediately
+
+; TID = Current Task ID
+
+;Pre-emptSelectNextTask()
+;{
+;	Current_Quantum--;
+;	if (Current_Quantum < 0) {
+;		do {
+;			task++;
+;			if task > MAX_TASK
+;				task = 0;
+;			if (PRIORITY[task] & GROUP_MASK != PRIORITY[TID] & GROUP_MASK) {
+;				if (PRIORITY[task] && PRI_MASK > PRIORITY[TID] & PRI_MASK) {
+;				
+;				}
+;			}
+;		} while (task != TID)
+;	}
+;}
+
+; WAIT
+; If Signal already received, then return, no TS
+; Set Wait flag, Find next Task (ANY)
+
+; SIGNAL
+; If Signalled task was WAITING & same or higher priority, do TS
+; return
+
+
+
 BASIC_FORK:
 ; find free task
+                ;JSR COMBYT
+                ;STX $D020
+                ;LDY $D020
+                ;JMP $B3A2
+
                 SEI
                 TSX
                 STX SP0

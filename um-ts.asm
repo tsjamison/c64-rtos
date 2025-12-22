@@ -154,33 +154,34 @@ addtask
 ; 7   Wait(task, signalSet)
 ; 8   Signal(task, signalSet)
 
-
+; BASIC_BANK[]
+; GROUP[]
 ; PRIORITY[]
-;   6-7 BASIC_INSTANCE 0-3
-;   3-5 GROUP          0-7
-;   0-2 PRIORITY       0-7
-
-; QUANTUM[] (Time Slice)
-;   Jiffies to run before pre-empting allowed
-; WAITING[]     If 0, then its runnable
-; SIGNAL[]   Can signal before wait -- wait will return immediately
+; QUANTUM[] (Time Slice) Jiffies to run before pre-empting allowed
+; WAITING[] If 0, then its runnable
+; SIGNAL[]  Can signal before wait -- wait will return immediately
 
 ; TID = Current Task ID
-
+; NTID = Next Task ID
 ;Pre-emptSelectNextTask()
 ;{
+;	NTID = TID;  // Should already be true
 ;	Current_Quantum--;
 ;	if (Current_Quantum < 0) {
+;		task = TID;
+;		next_pri = PRIORITY[TID];
 ;		do {
-;			task++;
-;			if task > MAX_TASK
-;				task = 0;
-;			if (PRIORITY[task] & GROUP_MASK != PRIORITY[TID] & GROUP_MASK) {
-;				if (PRIORITY[task] && PRI_MASK > PRIORITY[TID] & PRI_MASK) {
-;				
-;				}
+;			if (task == 0) {
+;				task = MAX_TASKS;
 ;			}
-;		} while (task != TID)
+;			task--;
+;			if (WAITING[task] == 0
+;			 && GROUP[task] != GROUP[TID]
+;			 && PRIORITY[task] >= next_pri) {
+;				NTID = task;
+;				next_pri = PRIORITY[task];
+;			}
+;		} while (task != TID);
 ;	}
 ;}
 

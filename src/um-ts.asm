@@ -2,8 +2,7 @@
 
 UM_TS:
 
-                LDA #$00
-                STA TS_ENABLE
+                JSR FORBID
                 LDA #TIME_SLICES
                 STA TS
                 TSX
@@ -36,8 +35,7 @@ UM_TS:
                 LDX SP0,Y
                 TXS
 
-                LDA #$01
-                STA TS_ENABLE
+                JSR PERMIT
                 CLI
 
                 PLA

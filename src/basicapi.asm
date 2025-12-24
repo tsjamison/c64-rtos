@@ -3,26 +3,6 @@ FOUT   = $BDDD
 AYINT  = $B1BF
 SNGFLT = $B3A2
 
-USRTBL		.word USR_GETTID-1
-			.word USR_FORK-1
-			.word USR_BORDER-1
-			.word USR_BACKGND-1
-
-
-USR_HANDLER	JSR AYINT
-			LDA $65
-			CMP #4
-			bmi +
-			JMP $B248  ;?ILLEGAL QUANTITY  ERROR
-+			ASL
-			TAY
-			LDA USRTBL+1,Y
-			PHA
-			LDA USRTBL+0,Y
-			PHA
-			RTS
-
-
 ; USR(.)[,...]
 ; 0   GET PID
 ; 1   Fork
@@ -34,17 +14,33 @@ USR_HANDLER	JSR AYINT
 ; 7   Wait(task, signalSet), task -1 is own task, signalSet of 0 is YIELD
 ; 8   Signal(task, signalSet)
 
+USRTBL		.word USR_GETTID-1
+			.word USR_FORK-1
+			.word USR_FORBID-1
+			.word USR_PERMIT-1
+			.word USR_BORDER-1
+			.word USR_BACKGND-1
+			.word BASIC_SAVE-1
+			.word BASIC_LOAD-1
+
+
+USR_HANDLER	JSR AYINT
+			LDA $65
+			CMP #8    ; # entries in USRTBL
+			bmi +
+			JMP $B248  ;?ILLEGAL QUANTITY  ERROR
++			ASL
+			TAY
+			LDA USRTBL+1,Y
+			PHA
+			LDA USRTBL+0,Y
+			PHA
+			RTS
+
+
+
+
 		
-
-USR_BORDER      JSR COMBYT
-                LDY $D020
-                STX $D020
-                JMP SNGFLT
-
-USR_BACKGND     JSR COMBYT
-                LDY $D021
-                STX $D021
-                JMP SNGFLT
 
 
 USR_FORK:
@@ -87,19 +83,48 @@ USR_GETTID:
                 LDY TID
                 JMP $B3A2
 
+USR_FORBID:     JSR FORBID
+                LDY TS_ENABLE
+                JMP SNGFLT
+
+USR_PERMIT:     JSR PERMIT
+                LDY TS_ENABLE
+                JMP SNGFLT
+
+
+USR_BORDER      JSR COMBYT
+                LDY $D020
+                STX $D020
+                JMP SNGFLT
+
+USR_BACKGND     JSR COMBYT
+                LDY $D021
+                STX $D021
+                JMP SNGFLT
+
 
 BASIC_SAVE:
+                LDA #<+
+                STA RTSL
+                LDA #>+
+                STA RTSH
+
                 JSR COMBYT
                 LDY #XFER_SAVE
                 SEI
                 JSR XFER_BASIC_XY
-                CLI
++               CLI
                 RTS
 
 BASIC_LOAD:
+                LDA #<+
+                STA RTSL
+                LDA #>+
+                STA RTSH
+
                 JSR COMBYT
                 LDY #XFER_LOAD
                 SEI
                 JSR XFER_BASIC_XY
-                CLI
++               CLI
                 RTS

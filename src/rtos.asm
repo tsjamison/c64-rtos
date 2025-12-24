@@ -69,7 +69,7 @@ skip_install
                 LDA #>USR_HANDLER
                 STA $0312
 
-                LDA #$01
+                LDA #$00
                 STA TS_ENABLE
 
                 CLI
@@ -115,8 +115,8 @@ skip_install
 
 ; TASK SWITCH INTERRUPT
 INT:
-                LDA TS_ENABLE  ; 0 MEANS TASK SWITCH DISABLED
-                BEQ INTEND
+                LDA TS_ENABLE  ; 0 MEANS TASK SWITCH ENABLED
+                BNE INTEND
 
                 DEC TS
                 BPL INTEND

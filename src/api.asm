@@ -1,5 +1,11 @@
 
+FORBID          INC TS_ENABLE
+                RTS
 
+PERMIT          LDA TS_ENABLE
+                BEQ +
+                DEC TS_ENABLE
+                RTS
 
 addtask
 ;SAVE CURRENT STACK POINTER

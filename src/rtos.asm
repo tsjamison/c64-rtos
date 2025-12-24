@@ -64,9 +64,9 @@ skip_install
                 STA FLG0  ;SET ENABLE FLAG
 
 ; Initialize USR() pointer
-                LDA #<BASIC_FORK
+                LDA #<USR_HANDLER
                 STA $0311
-                LDA #>BASIC_FORK
+                LDA #>USR_HANDLER
                 STA $0312
 
                 LDA #$01

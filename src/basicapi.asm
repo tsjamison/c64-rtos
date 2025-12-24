@@ -1,3 +1,27 @@
+FCERR  = $B248
+FOUT   = $BDDD
+AYINT  = $B1BF
+SNGFLT = $B3A2
+
+USRTBL		.word USR_GETTID-1
+			.word USR_FORK-1
+			.word USR_BORDER-1
+			.word USR_BACKGND-1
+
+
+USR_HANDLER	JSR AYINT
+			LDA $65
+			CMP #4
+			bmi +
+			JMP $B248  ;?ILLEGAL QUANTITY  ERROR
++			ASL
+			TAY
+			LDA USRTBL+1,Y
+			PHA
+			LDA USRTBL+0,Y
+			PHA
+			RTS
+
 
 ; USR(.)[,...]
 ; 0   GET PID
@@ -10,21 +34,28 @@
 ; 7   Wait(task, signalSet), task -1 is own task, signalSet of 0 is YIELD
 ; 8   Signal(task, signalSet)
 
+		
 
-BASIC_FORK:
+USR_BORDER      JSR COMBYT
+                LDY $D020
+                STX $D020
+                JMP SNGFLT
+
+USR_BACKGND     JSR COMBYT
+                LDY $D021
+                STX $D021
+                JMP SNGFLT
+
+
+USR_FORK:
 ; find free task
-                ;JSR COMBYT
-                ;STX $D020
-                ;LDY $D020
-                ;JMP $B3A2
-
                 SEI
                 TSX
                 STX SP0
 
-                LDA #>BASIC_FORK_2
+                LDA #>USR_GETTID
                 PHA
-                LDA #<BASIC_FORK_2
+                LDA #<USR_GETTID
                 PHA
                 LDA #$20
                 PHA
@@ -52,7 +83,7 @@ BASIC_FORK:
                 CLI
 
 ; Set Return code based on current Task ID
-BASIC_FORK_2:
+USR_GETTID:
                 LDY TID
                 JMP $B3A2
 

@@ -9,7 +9,7 @@ SNGFLT = $B3A2
 ; 2   Forbid
 ; 3   Permit
 ; 4   RemTask(task)
-; 5   SetTaskPri <PID>,<GRP/PRI>
+; 5   SetTaskPri <PID>,<GRP>,<PRI>
 ; 6   GetTaskPri <PID> PID of -1 is own PID
 ; 7   Wait(task, signalSet), task -1 is own task, signalSet of 0 is YIELD
 ; 8   Signal(task, signalSet)
@@ -104,26 +104,28 @@ USR_BACKGND     JSR COMBYT
 
 
 BASIC_SAVE:
+                JSR COMBYT
+                LDY #XFER_SAVE
+
                 LDA #<+
                 STA RTSL
                 LDA #>+
                 STA RTSH
 
-                JSR COMBYT
-                LDY #XFER_SAVE
                 SEI
                 JSR XFER_BASIC_XY
 +               CLI
                 RTS
 
 BASIC_LOAD:
+                JSR COMBYT
+                LDY #XFER_LOAD
+
                 LDA #<+
                 STA RTSL
                 LDA #>+
                 STA RTSH
 
-                JSR COMBYT
-                LDY #XFER_LOAD
                 SEI
                 JSR XFER_BASIC_XY
 +               CLI

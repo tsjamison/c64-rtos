@@ -2,11 +2,14 @@
 FORBID          INC TS_ENABLE
                 RTS
 
-PERMIT          LDA TS_ENABLE
+PERMIT          SEI
+                LDA TS_ENABLE
                 BEQ +
                 DEC TS_ENABLE
+                CLI
                 RTS
 
+; @todo Update addtask to work correctly
 addtask
 ;SAVE CURRENT STACK POINTER
                 TSX

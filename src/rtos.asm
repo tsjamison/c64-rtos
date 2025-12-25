@@ -8,7 +8,7 @@ VARTAB = $2D
 STREND = $31
 FRETOP = $33
 MEMSIZ = $37
-
+mxtasks = 16
 
 
 ; 6502 Interrupt:
@@ -59,7 +59,10 @@ skip_install
                 LDA #$00
                 STA TID  ;TASK ID
                 STA TS
-                STA FLG1  ;CLEAR ENABLE FLAG for TASK 1
+                LDY #mxtasks-1
+-               STA FLG0,Y     ;CLEAR ENABLE FLAG FOR TASKS 1..mxtasks-1
+                DEY
+                BNE -
                 LDA #$C0  ; Ready, BASIC, Group 0 Pri 0
                 STA FLG0  ;SET ENABLE FLAG
 
@@ -126,7 +129,7 @@ INT:
                 LDY TID
 INT2:
                 INY
-                CPY #$02  ;MAX TASKS
+                CPY #mxtasks  ;MAX TASKS
                 BNE +
                 LDY #$00
 +
@@ -192,10 +195,8 @@ CLEANUP:
 
 
 TS_ENABLE       .BYTE ?
-SP0:            .BYTE ?
-SP1:            .BYTE ?
-FLG0:           .BYTE ?
-FLG1:           .BYTE ?
+SP0:            .fill mxtasks
+FLG0:           .fill mxtasks
 TS:             .BYTE ?
 TID:            .BYTE ?
 NTID:           .BYTE ?

@@ -34,9 +34,9 @@ addtask
                 PHA       ;X
                 PHA       ;Y
                 TSX
-                STX SP1
+;               STX SP1
     
-                STA FLG1  ;SET ENABLE FLAG
+;               STA FLG1  ;SET ENABLE FLAG
                 LDX SP0
                 TXS
                 RTS

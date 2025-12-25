@@ -47,7 +47,9 @@ USR_FORK:
 ; find free task
                 SEI
                 TSX
-                STX SP0
+                TXA
+                LDY TID
+                STA SP0,Y
 
                 LDA #>USR_GETTID
                 PHA
@@ -60,21 +62,29 @@ USR_FORK:
                 PHA
                 PHA
 
+                ; Find next empty slot
+                LDX TID
+-               INX
+                LDA FLG0,X
+                BNE -
+                STX NTID
                 LDA #$C0
-                STA FLG1
+                STA FLG0,X
 
                 LDA #<+
                 STA RTSL
                 LDA #>+
                 STA RTSH
                 LDY #XFER_SAVE
-                LDX #$01    ; New TID
                 JMP XFER_BASIC_XY
 
-+               TSX
-                STX SP1
++               LDY NTID
+                TSX
+                TXA
+                STA SP0,Y
 
-                LDX SP0
+                LDY TID
+                LDX SP0,Y
                 TXS
                 CLI
 

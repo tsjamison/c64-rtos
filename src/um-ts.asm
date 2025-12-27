@@ -3,8 +3,6 @@
 UM_TS:
 
                 JSR FORBID
-                LDA #TIME_SLICES
-                STA TS
                 TSX
                 TXA
                 LDY TID

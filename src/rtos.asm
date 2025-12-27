@@ -58,11 +58,11 @@ skip_install
 ; reset variables
                 LDA #$00
                 STA TID  ;TASK ID
-                STA TS
                 LDY #mxtasks-1
 -               STA FLG0,Y     ;CLEAR ENABLE FLAG FOR TASKS 1..mxtasks-1
+                STA PRI0,Y     ;CLEAR PRIORITY ARRAY
                 DEY
-                BNE -
+                BPL -
                 LDA #$C0  ; Ready, BASIC, Group 0 Pri 0
                 STA FLG0  ;SET ENABLE FLAG
 
@@ -90,6 +90,8 @@ skip_install
 ;	if (Current_Quantum < 0) {
 ;		task = TID;
 ;		next_pri = PRIORITY[TID];
+;		if (WAITING) group = NO_GRP;
+;       else group = GROUP[TID]
 ;		do {
 ;			if (task == 0) {
 ;				task = MAX_TASKS;
@@ -106,11 +108,11 @@ skip_install
 ;}
 
 ; WAIT
-; If Signal already received, then return, no TS
+; If Signal already received, then return, no task switch
 ; Set Wait flag, Find next Task (ANY)
 
 ; SIGNAL
-; If Signalled task was WAITING & same or higher priority, do TS
+; If Signalled task was WAITING & same or higher priority, do task switch
 ; return
 
 
@@ -121,23 +123,34 @@ INT:
                 LDA TS_ENABLE  ; 0 MEANS TASK SWITCH ENABLED
                 BNE INTEND
 
-                DEC TS
-                BPL INTEND
-                LDA #TIME_SLICES
-                STA TS
-
                 LDY TID
-INT2:
-                INY
-                CPY #mxtasks  ;MAX TASKS
-                BNE +
-                LDY #$00
-+
-                LDA FLG0,Y
-                BEQ INT2
-                CPY TID
-                BEQ INTEND
                 STY NTID
+                LDA PRI0,Y
+                STA MXPRI
+-               DEY
+                BPL +
+                LDY #mxtasks
+                DEY
++
+                CPY TID
+                BEQ +
+
+                LDA FLG0,Y
+                BEQ -
+
+                LDA PRI0,Y
+                CMP MXPRI
+                BMI -
+
+                STY NTID
+                STA MXPRI
+                BPL -      ;BRA
+
++               CPY NTID
+                BEQ INTEND
+
+
+
 
 ; Y has next task to run
 ; cmp y withh TID
@@ -176,7 +189,6 @@ CLEANUP:
                 LDA #$00
                 LDY TID
                 STA FLG0,Y
-                STA TS
                 CLI
                 BRK
 
@@ -189,7 +201,7 @@ CLEANUP:
 ; GROUP[]    No task-switching among tasks in same group until task is WAITING
 ; PRIORITY[]
 ; QUANTUM[] (Time Slice) Jiffies to run before pre-empting allowed
-; WAITING[] If 0, then its runnable, A WAIT with 0 is considered a YIELD
+; WAITING[] If 0, then its runnable
 ; SIGNAL[]  Can signal before wait -- wait will return immediately
 ; SLEEP_TIME[] 16-bit sleep time in ticks. 0 for not sleeping
 
@@ -197,9 +209,10 @@ CLEANUP:
 TS_ENABLE       .BYTE ?
 SP0:            .fill mxtasks
 FLG0:           .fill mxtasks
-TS:             .BYTE ?
+PRI0:           .fill mxtasks
 TID:            .BYTE ?
 NTID:           .BYTE ?
+MXPRI:          .BYTE ?
 
 IRQL:           .BYTE ?
 IRQH:           .BYTE ?

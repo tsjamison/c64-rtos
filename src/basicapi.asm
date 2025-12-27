@@ -9,7 +9,7 @@ SNGFLT = $B3A2
 ; 2   Forbid
 ; 3   Permit
 ; 4   RemTask(task)
-; 5   SetTaskPri <PID>,<GRP>,<PRI>
+; 5   SetTaskPri <PID>,<PRI>
 ; 6   GetTaskPri <PID> PID of -1 is own PID
 ; 7   Wait(task, signalSet), task -1 is own task, signalSet of 0 is YIELD
 ; 8   Signal(task, signalSet)
@@ -18,15 +18,18 @@ USRTBL		.word USR_GETTID-1
 			.word USR_FORK-1
 			.word USR_FORBID-1
 			.word USR_PERMIT-1
+			.word USR_SETPRI-1
+			.word USR_GETPRI-1
 			.word USR_BORDER-1
 			.word USR_BACKGND-1
 			.word BASIC_SAVE-1
 			.word BASIC_LOAD-1
+			
 
 
 USR_HANDLER	JSR AYINT
 			LDA $65
-			CMP #8    ; # entries in USRTBL
+			CMP #10    ; # entries in USRTBL
 			bmi +
 			JMP $B248  ;?ILLEGAL QUANTITY  ERROR
 +			ASL
@@ -37,10 +40,6 @@ USR_HANDLER	JSR AYINT
 			PHA
 			RTS
 
-
-
-
-		
 
 
 USR_FORK:
@@ -99,6 +98,25 @@ USR_FORBID:     JSR FORBID
 
 USR_PERMIT:     JSR PERMIT
                 LDY TS_ENABLE
+                JMP SNGFLT
+
+USR_SETPRI:     JSR COMBYT   ; TID
+                JSR GET_PRI
+                TYA
+                PHA
+                TXA
+                PHA
+                JSR COMBYT   ; PRI
+                PLA
+                TAY
+                TXA
+                JSR SET_PRI  ; y = TID, A = New Pri
+                PLA
+                TAY
+                JMP SNGFLT
+
+USR_GETPRI:     JSR COMBYT
+                JSR GET_PRI  ; x = TID, y-> new Pri
                 JMP SNGFLT
 
 

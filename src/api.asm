@@ -9,6 +9,12 @@ PERMIT          SEI
                 CLI
                 RTS
 
+SET_PRI         STA PRI0,Y
+                RTS
+
+GET_PRI         LDY PRI0,X
+                RTS
+
 ; @todo Update addtask to work correctly
 addtask
 ;SAVE CURRENT STACK POINTER

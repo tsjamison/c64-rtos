@@ -1,7 +1,17 @@
 # c64-rtos
 Multitasking library module for Commodore 64 8-bit computer, inspired by FreeRTOS and Amiga OS
+Copyright 2025 Tim Jamison
 
 Pre-Alpha
+
+Features Not Implemented Yet for 1st Release:
+* Task Group - Multi-tasking will be cooperative among tasks in same Group, but pre-emptive across Groups
+* Timer device to sleep for x Jiffies
+* Input device to sleep until Joystick Input
+* Task Quantum for Time-Slicing
+
+Other future features depend on the needs of the community.
+
 
 The following RTOS BASIC fuctions are implemented:
 | FUNCTION   | USR Command    | Description |

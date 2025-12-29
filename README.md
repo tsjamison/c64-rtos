@@ -22,8 +22,8 @@ The following RTOS BASIC fuctions are implemented:
 | FORK       | USR(1)              | Creats a new Task based off of current Task with a copy of BASIC RAM [fork()](https://en.wikipedia.org/wiki/Fork_(system_call)) |
 | FORBID     | USR(2)              | forbid task rescheduling until a matching PERMIT |
 | PERMIT     | USR(3)              | permit task rescheduling |
-| SETPRI     | USR(4),TASK, PRI    | Set Task Priority. High priority tasks prevent low priority tasks from running |
-| GETPRI     | USR(5)              | Get Task Priority. |
+| SETPRI     | USR(4),TASK,PRI     | Set Task Priority. High priority tasks prevent low priority tasks from running |
+| GETPRI     | USR(5),TASK         | Get Task Priority. |
 | WAIT       | USR(6),MASK         | Set Task to sleep, waiting for a signal in the mask to wake it up |
 | SIGNAL     | USR(7),TASK,SIG_SET | Signals a Waiting Task                    |
 | BORDER:    | USR(8),COLOR        | *Deprecated* - Changes Border color       |

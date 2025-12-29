@@ -9,6 +9,8 @@ Features Not Implemented Yet for 1st Release:
 * Timer device to sleep for x Jiffies
 * Input device to sleep until Joystick Input
 * Task Quantum for Time-Slicing
+* Standardize Assembly-Language API
+* Create Assembly-language demos to demonstrate Assembly/BASIC multitasking interopability
 
 Other future features depend on the needs of the community.
 

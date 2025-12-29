@@ -11,19 +11,6 @@ MEMSIZ = $37
 mxtasks = 16
 
 
-; 6502 Interrupt:
-; Push Return address High
-; Push Return address low
-; Push Status
-; JMP ($FFFE) -> FF48
-; Push A
-; Push X
-; Push Y
-; Check Status Interrupt bit
-; JMP ($0316) if clear (BRK isntruction)
-; JMP ($0314) if set
-
-; @todo - Decide if/how to utilise BRK
 
 
 
@@ -61,6 +48,8 @@ skip_install
                 LDY #mxtasks-1
 -               STA FLG0,Y     ;CLEAR ENABLE FLAG FOR TASKS 1..mxtasks-1
                 STA PRI0,Y     ;CLEAR PRIORITY ARRAY
+                STA WAIT0,Y    ;CLEAR WAIT ARRAY
+                STA SIGNAL0,Y  ;CLEAR SIGNAL ARRAY
                 DEY
                 BPL -
                 LDA #$C0  ; Ready, BASIC, Group 0 Pri 0
@@ -115,46 +104,20 @@ skip_install
 ; If Signalled task was WAITING & same or higher priority, do task switch
 ; return
 
-
+;@todo How to force Task Switch logic from Wait()?
 
 
 ; TASK SWITCH INTERRUPT
 INT:
+
+; @todo Before checking if TS is Permitted:
+; @todo Update Timer / Input Devices
+; @todo Update Quantum
+
+
                 LDA TS_ENABLE  ; 0 MEANS TASK SWITCH ENABLED
                 BNE INTEND
 
-                LDY TID
-                STY NTID
-                LDA PRI0,Y
-                STA MXPRI
--               DEY
-                BPL +
-                LDY #mxtasks
-                DEY
-+
-                CPY TID
-                BEQ +
-
-                LDA FLG0,Y
-                BEQ -
-
-                LDA PRI0,Y
-                CMP MXPRI
-                BMI -
-
-                STY NTID
-                STA MXPRI
-                BPL -      ;BRA
-
-+               CPY NTID
-                BEQ INTEND
-
-
-
-
-; Y has next task to run
-; cmp y withh TID
-; if same, then don't task switch
 
 ; Prepare task-switch task
 ; Push Return address High
@@ -210,6 +173,8 @@ TS_ENABLE       .BYTE ?
 SP0:            .fill mxtasks
 FLG0:           .fill mxtasks
 PRI0:           .fill mxtasks
+WAIT0:          .fill mxtasks
+SIGNAL0:        .fill mxtasks
 TID:            .BYTE ?
 NTID:           .BYTE ?
 MXPRI:          .BYTE ?

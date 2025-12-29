@@ -1,8 +1,64 @@
 
+UM_TS_PROC:	CLC
+			TSX
+			INC $101,X
+			ADC $102,X
+			PHP
+			PHA
+			PHA
+			PHA
+			JMP UM_TS
+
+; 6502 Interrupt:
+; Push Return address High
+; Push Return address low
+; Push Status
+; JMP ($FFFE) -> FF48
+; Push A
+; Push X
+; Push Y
+; Check Status Interrupt bit
+; JMP ($0316) if clear (BRK isntruction)
+; JMP ($0314) if set
+
+; @todo - Decide if/how to utilise BRK
 
 UM_TS:
-
                 JSR FORBID
+
+                LDY TID
+                STY NTID
+                LDA #$00
+                STA MXPRI
+
+-               LDA FLG0,Y
+                BEQ UM_TS.NEXT
+
+                LDA WAIT0,Y
+                BEQ +
+                AND SIGNAL0,Y
+                BEQ UM_TS.NEXT
+
++               LDA PRI0,Y
+                CMP MXPRI
+                BMI UM_TS.NEXT     ; maybe BCC or BCS?
+
+                STY NTID
+                STA MXPRI
+
+UM_TS.NEXT      DEY
+                BPL +
+                LDY #mxtasks
+                DEY
++
+                CPY TID
+                BNE -    ;DONE with LOOP
+
+                CPY NTID
+                BEQ TS_SWAP_END
+
+TS_SWAP:
+
                 TSX
                 TXA
                 LDY TID
@@ -17,8 +73,7 @@ UM_TS:
                 SEI
                 JMP XFER_BASIC_XY 
 
-+
-                LDA #<+
++               LDA #<+
                 STA RTSL
                 LDA #>+
                 STA RTSH
@@ -33,7 +88,7 @@ UM_TS:
                 LDX SP0,Y
                 TXS
 
-                JSR PERMIT
+TS_SWAP_END     JSR PERMIT
                 CLI
 
                 PLA

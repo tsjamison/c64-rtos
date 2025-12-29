@@ -1,10 +1,9 @@
 # c64-rtos
-Multitasking library module for Commodore 64 8-bit computer, inspired by FreeRTOS and Amiga OS
-Copyright 2025 Tim Jamison
+Multitasking library module for Commodore 64 8-bit computer, inspired by FreeRTOS and Amiga OS.
 
 Pre-Alpha
 
-Features Not Implemented Yet for 1st Release:
+Features planned for 1st release v1.0:
 * Task Group - Multi-tasking will be cooperative among tasks in same Group, but pre-emptive across Groups
 * Timer device to sleep for x Jiffies
 * Input device to sleep until Joystick Input
@@ -12,7 +11,11 @@ Features Not Implemented Yet for 1st Release:
 * Standardize Assembly-Language API
 * Create Assembly-language demos to demonstrate Assembly/BASIC multitasking interopability
 
-Other future features depend on the needs of the community.
+Features planned for 2nd release v2.0:
+* Inter-process Communication
+* Better demos
+* Cleaned up source code
+* Other future features upon request.
 
 
 The following RTOS BASIC fuctions are implemented:
@@ -31,13 +34,14 @@ The following RTOS BASIC fuctions are implemented:
 | BASIC_SAVE | USR(10),BANK        | *Deprecated* - Saves BASIC state to REU   |
 | BASIC_LOAD | USR(11),BANK        | *Deprecated* - Loads BASIC state from REU |
 
-Caveats: there is no error-handling. Not every possible situation has been tested.
+Caveats: There is no error-handling. No parameter checking for valid range.
+Not every possible situation has been tested.
 Must have an REU enabled with at least 1MB RAM (64KB per Task * 16 Tasks).
 
 I/O isn't protected. Input goes to any runing task.
 Each task keeps its own output state.
 
-The background color reflects which current task is running.
+The border color reflects which current task is running.
 
 DEMO STEPS:
 
@@ -48,7 +52,7 @@ DEMO STEPS:
 
 
 The BASIC program first does a SYS call to initialize the RTOS.
-Then it calls USR(), which performs a [fork()](https://en.wikipedia.org/wiki/Fork_(system_call)),
+Then it calls USR(1), which performs a [fork()](https://en.wikipedia.org/wiki/Fork_(system_call)),
 and returns the Task ID. The original task is 0, the newly created task is 1.
 
 Calls to USR(4) sets the priorities of each task that will be created
@@ -57,10 +61,11 @@ Calls to USR(4) sets the priorities of each task that will be created
 Try changing the priorities to see how it affects which tasks run.
 
 Task 2 (Red) is running because it has the highest priority.
-If you hit STOP, then  you can issue the following:
+You can put Task 2 to sleep, and allow lower priority tasks to run.
+For example, if you hit STOP, then  you can issue the following:
 `?usr(6),1`
-That will put Task 2 to sleep, and allow Task 1 (WHITE) to run.
-You can re-enable Task 2 by doing:
+That will put Task 2 to sleep waiting for signal 1, and allow Task 1 (WHITE) to run.
+You can re-enable Task 2 by sending Task 2 the signal 1 it is waiting for:
 `?usr(7),2,1`
 
 
@@ -78,3 +83,8 @@ You can re-enable Task 2 by doing:
 50 print t "task" ti
 60 goto 30
 ```
+After all the forking, tere are 4 tasks running the same code in their own BASIC memory spaces.
+The variable t has its task id, which can also be read by calling USR(0).
+
+In a Loop, each task moves down to its own line and prints the time. That way you can see which tasks are running.
+

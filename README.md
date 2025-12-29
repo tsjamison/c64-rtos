@@ -16,20 +16,20 @@ Other future features depend on the needs of the community.
 
 
 The following RTOS BASIC fuctions are implemented:
-| FUNCTION   | USR Command    | Description |
-| ---------- | -------------- | ----------- |
-| GET_TID    | USR(0)         | Returns Task ID of currently running Task |
-| FORK       | USR(1)         | Creats a new Task based off of current Task with a copy of BASIC RAM [fork()](https://en.wikipedia.org/wiki/Fork_(system_call)) |
-| FORBID     | USR(2)         | forbid task rescheduling until a matching PERMIT |
-| PERMIT     | USR(3)         | permit task rescheduling |
-| SETPRI     | USR(4),PRI     | Set Task Priority. High priority tasks prevent low priority tasks from running |
-| GETPRI     | USR(5)         | Get Task Priority. |
-| WAIT       | USR(6),MASK    | Set Task to sleep, waiting for a signal in the mask to wake it up |
-| SIGNAL     | USR(7),SIG_SET | Signals a Waiting Task                    |
-| BORDER:    | USR(8),COLOR   | *Deprecated* - Changes Border color       |
-| BACKGND:   | USR(9),COLOR   | *Deprecated* - Changer Background color   |
-| BASIC_SAVE | USR(10),BANK   | *Deprecated* - Saves BASIC state to REU   |
-| BASIC_LOAD | USR(11),BANK   | *Deprecated* - Loads BASIC state from REU |
+| FUNCTION   | USR Command         | Description |
+| ---------- | ------------------- | ----------- |
+| GET_TID    | USR(0)              | Returns Task ID of currently running Task |
+| FORK       | USR(1)              | Creats a new Task based off of current Task with a copy of BASIC RAM [fork()](https://en.wikipedia.org/wiki/Fork_(system_call)) |
+| FORBID     | USR(2)              | forbid task rescheduling until a matching PERMIT |
+| PERMIT     | USR(3)              | permit task rescheduling |
+| SETPRI     | USR(4),TASK, PRI    | Set Task Priority. High priority tasks prevent low priority tasks from running |
+| GETPRI     | USR(5)              | Get Task Priority. |
+| WAIT       | USR(6),MASK         | Set Task to sleep, waiting for a signal in the mask to wake it up |
+| SIGNAL     | USR(7),TASK,SIG_SET | Signals a Waiting Task                    |
+| BORDER:    | USR(8),COLOR        | *Deprecated* - Changes Border color       |
+| BACKGND:   | USR(9),COLOR        | *Deprecated* - Changer Background color   |
+| BASIC_SAVE | USR(10),BANK        | *Deprecated* - Saves BASIC state to REU   |
+| BASIC_LOAD | USR(11),BANK        | *Deprecated* - Loads BASIC state from REU |
 
 Caveats: there is no error-handling. Not every possible situation has been tested.
 Must have an REU enabled with at least 1MB RAM (64KB per Task * 16 Tasks).
@@ -41,10 +41,10 @@ The background color reflects which current task is running.
 
 DEMO STEPS:
 
-`load "rtos",8,1`
-`new`
-`load "demo3",8`
-`run`
+* `load "rtos",8,1`
+* `new`
+* `load "demo3",8`
+* `run`
 
 
 The BASIC program first does a SYS call to initialize the RTOS.

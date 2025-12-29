@@ -1,29 +1,68 @@
 # c64-rtos
 Multitasking library module for Commodore 64 8-bit computer, inspired by FreeRTOS and Amiga OS
 
-PROOF-OF-CONCEPT
+Pre-Alpha
 
-Right now, there is a limit of 2 tasks, there is no error-handling.
-Must have an REU enabled with at least 128KB RAM.
+The following RTOS BASIC fuctions are implemented:
+| FUNCTION   | USR Command    | Description |
+| ---------- | -------------- | ----------- |
+| GET_TID    | USR(0)         | Returns Task ID of currently running Task |
+| FORK       | USR(1)         | Creats a new Task based off of current Task with a copy of BASIC RAM [fork()](https://en.wikipedia.org/wiki/Fork_(system_call)) |
+| FORBID     | USR(2)         | forbid task rescheduling until a matching PERMIT |
+| PERMIT     | USR(3)         | permit task rescheduling |
+| SETPRI     | USR(4),PRI     | Set Task Priority. High priority tasks prevent low priority tasks from running |
+| GETPRI     | USR(5)         | Get Task Priority. |
+| WAIT       | USR(6),MASK    | Set Task to sleep, waiting for a signal in the mask to wake it up |
+| SIGNAL     | USR(7),SIG_SET | Signals a Waiting Task                    |
+| BORDER:    | USR(8),COLOR   | *Deprecated* - Changes Border color       |
+| BACKGND:   | USR(9),COLOR   | *Deprecated* - Changer Background color   |
+| BASIC_SAVE | USR(10),BANK   | *Deprecated* - Saves BASIC state to REU   |
+| BASIC_LOAD | USR(11),BANK   | *Deprecated* - Loads BASIC state from REU |
 
-I/O isn't protected, so it gets weird if two tasks try to print at same time.
+Caveats: there is no error-handling. Not every possible situation has been tested.
+Must have an REU enabled with at least 1MB RAM (64KB per Task * 16 Tasks).
+
+I/O isn't protected. Input goes to any runing task.
+Each task keeps its own output state.
+
+The background color reflects which current task is running.
 
 DEMO STEPS:
 
-`LOAD"UM-TS",8,1`
+`load "rtos",8,1`
+`new`
+`load "demo3",8`
+`run`
+
 
 The BASIC program first does a SYS call to initialize the RTOS.
 Then it calls USR(), which performs a [fork()](https://en.wikipedia.org/wiki/Fork_(system_call)),
 and returns the Task ID. The original task is 0, the newly created task is 1.
 
-Task 0 prints "HELLO, WORLD" in a loop
-Task 1 changes the color of the screen in a loop.
+Calls to USR(4) sets the priorities of each task that will be created
+4 Tasks get created in this program.
+
+Try changing the priorities to see how it affects which tasks run.
+
+Task 2 (Red) is running because it has the highest priority.
+If you hit STOP, then  you can issue the following:
+`?usr(6),1`
+That will put Task 2 to sleep, and allow Task 1 (WHITE) to run.
+You can re-enable Task 2 by doing:
+`?usr(7),2,1`
+
 
 ```basic
+5 print "{CLR}"
 10 sys 49152:rem initialize rtos
+15 z=usr(4),0,0
+16 z=usr(4),1,1
+17 z=usr(4),2,2
+18 z=usr(4),3,0
 20 t=usr(1):rem fork, returns task id
-30 if t=1 then 100:rem code splits
-40 print "hello, world" ti
-50 goto 40
-100 fori=0to15:poke53281,i:next:goto100
+25 t=usr(1)
+30 print "{HOME}"
+40 for i=0 to t:print"{DOWN}";:next
+50 print t "task" ti
+60 goto 30
 ```

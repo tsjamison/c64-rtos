@@ -10,6 +10,7 @@ FRETOP = $33
 MEMSIZ = $37
 mxtasks = 16
 
+TIMER_SIGNAL = $40
 
 
 
@@ -50,6 +51,8 @@ skip_install
                 STA PRI0,Y     ;CLEAR PRIORITY ARRAY
                 STA WAIT0,Y    ;CLEAR WAIT ARRAY
                 STA SIGNAL0,Y  ;CLEAR SIGNAL ARRAY
+                STA SLEEP0,Y   ;CLEAR SLEEP ARRAY LO
+                STA SLEEP1,Y   ;CLEAR SLEEP ARRAY HI
                 DEY
                 BPL -
                 LDA #$C0  ; Ready, BASIC, Group 0 Pri 0
@@ -114,6 +117,25 @@ INT:
 ; @todo Update Timer / Input Devices
 ; @todo Update Quantum
 
+                LDX #mxtasks-1
+-               LDA SLEEP0,X
+                ORA SLEEP1,X
+                BEQ +
+				SEC
+				LDA SLEEP0,X
+				SBC #1
+				STA SLEEP0,X
+                LDA SLEEP1,X
+                SBC #0
+                STA SLEEP1,X
+                ORA SLEEP0,X
+                BNE +
+                LDA #TIMER_SIGNAL
+                ORA SIGNAL0,X
+                STA SIGNAL0,X
++               DEX
+                BPL -
+
 
                 LDA TS_ENABLE  ; 0 MEANS TASK SWITCH ENABLED
                 BNE INTEND
@@ -175,6 +197,8 @@ FLG0:           .fill mxtasks
 PRI0:           .fill mxtasks
 WAIT0:          .fill mxtasks
 SIGNAL0:        .fill mxtasks
+SLEEP0:         .fill mxtasks
+SLEEP1:         .fill mxtasks
 TID:            .BYTE ?
 NTID:           .BYTE ?
 MXPRI:          .BYTE ?

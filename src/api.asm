@@ -15,6 +15,43 @@ SET_PRI         STA PRI0,Y
 GET_PRI         LDY PRI0,X
                 RTS
 
+WAIT            LDY TID
+                STA WAIT0,Y
+                ; Going to Sleep
+                JSR UM_TS_PROC
+                ; Waking up from Sleep
+                LDY TID
+                LDA WAIT0,Y
+                AND SIGNAL0,Y
+                PHA
+                LDA WAIT0,Y
+                EOR #$FF
+                AND SIGNAL0,Y
+                STA SIGNAL0,Y
+                LDA #$00
+                STA WAIT0,Y
+                PLA
+                RTS
+
+SIGNAL 			ORA SIGNAL0,Y
+				STA SIGNAL0,Y
+				RTS
+
+SLEEP
+                LDX TID
+                STA SLEEP1,X
+                TYA
+                STA SLEEP0,X
+                ORA SLEEP1,X
+                BEQ +
+                LDA #TIMER_SIGNAL
+                BNE ++
++               LDA #$00
++               JSR WAIT
+                RTS
+
+
+
 ; @todo Update addtask to work correctly
 addtask
 ;SAVE CURRENT STACK POINTER

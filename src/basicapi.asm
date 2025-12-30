@@ -1,7 +1,10 @@
-FCERR  = $B248
-FOUT   = $BDDD
-AYINT  = $B1BF
-SNGFLT = $B3A2
+FCERR     = $B248
+FOUT      = $BDDD
+AYINT     = $B1BF
+SNGFLT    = $B3A2
+skipcomma = $AEFD
+evalparam = $AD9E
+convert16 = $B7F7
 
 ; USR(.)[,...]
 ; 0   GET PID
@@ -20,20 +23,21 @@ USRTBL		.word USR_GETTID-1  ;USR(0)
 			.word USR_FORK-1    ;USR(1)
 			.word USR_FORBID-1  ;USR(2)
 			.word USR_PERMIT-1  ;USR(3)
-			.word USR_SETPRI-1  ;USR(4),PRI
-			.word USR_GETPRI-1  ;USR(5)
+			.word USR_SETPRI-1  ;USR(4),TASK,PRI
+			.word USR_GETPRI-1  ;USR(5),TASK
 			.word USR_WAIT-1    ;USR(6),MASK
-			.word USR_SIGNAL-1  ;USR(7),SIG_SET
-			.word USR_BORDER-1  ;USR(8),COLOR
-			.word USR_BACKGND-1 ;USR(9),COLOR
-			.word BASIC_SAVE-1  ;USR(10),BANK
-			.word BASIC_LOAD-1  ;USR(11),BANK
+			.word USR_SIGNAL-1  ;USR(7),TASK,SIG_SET
+			.word USR_SLEEP-1   ;USR(8),JIFFIES
+			.word USR_BORDER-1  ;USR(9),COLOR
+			.word USR_BACKGND-1 ;USR(10),COLOR
+			.word BASIC_SAVE-1  ;USR(11),BANK
+			.word BASIC_LOAD-1  ;USR(12),BANK
 			
 
 
 USR_HANDLER	JSR AYINT
 			LDA $65
-			CMP #12    ; # entries in USRTBL
+			CMP #13    ; # entries in USRTBL
 			bmi +
 			JMP $B248  ;?ILLEGAL QUANTITY  ERROR
 +			ASL
@@ -138,24 +142,15 @@ USR_GETPRI:     JSR COMBYT
 ;	0000 NEW WAIT (WAIT = 0)
 ;	return RET
 ; }
-
+;
+; $80 <reserved>
+; $40 <timer>
+; $20 <joystick>
+; $10
 ;
 USR_WAIT:       JSR COMBYT
                 TXA
-                LDY TID
-                STA WAIT0,Y
-                JSR UM_TS_PROC
-                LDY TID
-                LDA WAIT0,Y
-                AND SIGNAL0,Y
-                PHA
-                LDA WAIT0,Y
-                EOR #$FF
-                AND SIGNAL0,Y
-                STA SIGNAL0,Y
-                LDA #$00
-                STA WAIT0,Y
-                PLA
+                JSR WAIT
                 TAY
                 JMP SNGFLT
 
@@ -176,10 +171,17 @@ USR_SIGNAL:		JSR COMBYT
 				PLA
 				TAY
 				TXA
-				ORA SIGNAL0,Y
-				STA SIGNAL0,Y
+				JSR SIGNAL
 				TAY
 				JMP SNGFLT
+
+USR_SLEEP:      JSR skipcomma
+                JSR evalparam
+                JSR convert16  ;y is lo, a is hi
+                JSR SLEEP
+                TAY
+                JMP SNGFLT
+
 
 USR_BORDER      JSR COMBYT
                 LDY $D020

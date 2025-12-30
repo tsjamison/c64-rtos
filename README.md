@@ -5,7 +5,6 @@ Pre-Alpha
 
 Features planned for 1st release v1.0:
 * Task Group - Multi-tasking will be cooperative among tasks in same Group, but pre-emptive across Groups
-* Timer device to sleep for x Jiffies
 * Input device to sleep until Joystick Input
 * Task Quantum for Time-Slicing
 * Standardize Assembly-Language API
@@ -29,10 +28,11 @@ The following RTOS BASIC fuctions are implemented:
 | GETPRI     | USR(5),TASK         | Get Task Priority. |
 | WAIT       | USR(6),MASK         | Set Task to sleep, waiting for a signal in the mask to wake it up |
 | SIGNAL     | USR(7),TASK,SIG_SET | Signals a Waiting Task                    |
-| BORDER:    | USR(8),COLOR        | *Deprecated* - Changes Border color       |
-| BACKGND:   | USR(9),COLOR        | *Deprecated* - Changer Background color   |
-| BASIC_SAVE | USR(10),BANK        | *Deprecated* - Saves BASIC state to REU   |
-| BASIC_LOAD | USR(11),BANK        | *Deprecated* - Loads BASIC state from REU |
+| SLEEP      | USR(8),JIFFIES      | Sleeps current task for x Jiffies         |
+| BORDER:    | USR(9),COLOR        | *Deprecated* - Changes Border color       |
+| BACKGND:   | USR(10),COLOR       | *Deprecated* - Changes Background color   |
+| BASIC_SAVE | USR(11),BANK        | *Deprecated* - Saves BASIC state to REU   |
+| BASIC_LOAD | USR(12),BANK        | *Deprecated* - Loads BASIC state from REU |
 
 Caveats: There is no error-handling. No parameter checking for valid range.
 Not every possible situation has been tested.

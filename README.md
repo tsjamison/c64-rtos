@@ -11,6 +11,7 @@ Features planned for 1st release v1.0:
 * Create Assembly-language demos to demonstrate Assembly/BASIC multitasking interopability
 
 Features planned for 2nd release v2.0:
+* Tasks may share BASIC Banks with other tasks
 * Inter-process Communication
 * Better demos
 * Cleaned up source code

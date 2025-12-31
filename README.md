@@ -4,9 +4,7 @@ Multitasking library module for Commodore 64 8-bit computer, inspired by FreeRTO
 Pre-Alpha
 
 Features planned for 1st release v1.0:
-* Task Group - Multi-tasking will be cooperative among tasks in same Group, but pre-emptive across Groups
 * Input device to sleep until Joystick Input
-* Task Quantum for Time-Slicing
 * Standardize Assembly-Language API
 * Create Assembly-language demos to demonstrate Assembly/BASIC multitasking interopability
 
@@ -15,6 +13,7 @@ Features planned for 2nd release v2.0:
 * Inter-process Communication
 * Better demos
 * Cleaned up source code
+* Task Quantum for Time-Slicing
 * Other future features upon request.
 
 
@@ -27,13 +26,14 @@ The following RTOS BASIC fuctions are implemented:
 | PERMIT     | USR(3)              | permit task rescheduling |
 | SETPRI     | USR(4),TASK,PRI     | Set Task Priority. High priority tasks prevent low priority tasks from running |
 | GETPRI     | USR(5),TASK         | Get Task Priority. |
-| WAIT       | USR(6),MASK         | Set Task to sleep, waiting for a signal in the mask to wake it up |
-| SIGNAL     | USR(7),TASK,SIG_SET | Signals a Waiting Task                    |
-| SLEEP      | USR(8),JIFFIES      | Sleeps current task for x Jiffies         |
-| BORDER:    | USR(9),COLOR        | *Deprecated* - Changes Border color       |
-| BACKGND:   | USR(10),COLOR       | *Deprecated* - Changes Background color   |
-| BASIC_SAVE | USR(11),BANK        | *Deprecated* - Saves BASIC state to REU   |
-| BASIC_LOAD | USR(12),BANK        | *Deprecated* - Loads BASIC state from REU |
+| SETGRP     | USR(6),TASK,GRP     | Set Task Group. Tasks in same group are co-operative. Tasks in different groups are pre-emptive |
+| WAIT       | USR(7),MASK         | Set Task to sleep, waiting for a signal in the mask to wake it up |
+| SIGNAL     | USR(8),TASK,SIG_SET | Signals a Waiting Task                    |
+| SLEEP      | USR(9),JIFFIES      | Sleeps current task for x Jiffies         |
+| BORDER:    | USR(10),COLOR       | *Deprecated* - Changes Border color       |
+| BACKGND:   | USR(11),COLOR       | *Deprecated* - Changes Background color   |
+| BASIC_SAVE | USR(12),BANK        | *Deprecated* - Saves BASIC state to REU   |
+| BASIC_LOAD | USR(13),BANK        | *Deprecated* - Loads BASIC state from REU |
 
 Caveats: There is no error-handling. No parameter checking for valid range.
 Not every possible situation has been tested.

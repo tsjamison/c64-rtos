@@ -15,6 +15,13 @@ SET_PRI         STA PRI0,Y
 GET_PRI         LDY PRI0,X
                 RTS
 
+SET_GRP         STA GRP0,Y
+                RTS
+
+GET_GRP         LDY GRP0,X
+                RTS
+
+
 WAIT            LDY TID
                 STA WAIT0,Y
                 ; Going to Sleep

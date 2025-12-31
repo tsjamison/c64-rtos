@@ -25,14 +25,14 @@ USRTBL		.word USR_GETTID-1  ;USR(0)
 			.word USR_PERMIT-1  ;USR(3)
 			.word USR_SETPRI-1  ;USR(4),TASK,PRI
 			.word USR_GETPRI-1  ;USR(5),TASK
-			.word USR_WAIT-1    ;USR(6),MASK
-			.word USR_SIGNAL-1  ;USR(7),TASK,SIG_SET
-			.word USR_SLEEP-1   ;USR(8),JIFFIES
-			.word USR_BORDER-1  ;USR(9),COLOR
-			.word USR_BACKGND-1 ;USR(10),COLOR
-			.word BASIC_SAVE-1  ;USR(11),BANK
-			.word BASIC_LOAD-1  ;USR(12),BANK
-			
+			.word USR_SETGRP-1  ;USR(6),TASK,GRP
+			.word USR_WAIT-1    ;USR(7),MASK
+			.word USR_SIGNAL-1  ;USR(8),TASK,SIG_SET
+			.word USR_SLEEP-1   ;USR(9),JIFFIES
+			.word USR_BORDER-1  ;USR(10),COLOR
+			.word USR_BACKGND-1 ;USR(11),COLOR
+			.word BASIC_SAVE-1  ;USR(12),BANK
+			.word BASIC_LOAD-1  ;USR(13),BANK
 
 
 USR_HANDLER	JSR AYINT
@@ -125,6 +125,21 @@ USR_SETPRI:     JSR COMBYT   ; TID
 
 USR_GETPRI:     JSR COMBYT
                 JSR GET_PRI  ; x = TID, y-> new Pri
+                JMP SNGFLT
+
+USR_SETGRP:     JSR COMBYT   ; TID
+                JSR GET_GRP
+                TYA
+                PHA
+                TXA
+                PHA
+                JSR COMBYT   ; GRP
+                PLA
+                TAY
+                TXA
+                JSR SET_GRP  ; y = TID, A = New Group
+                PLA
+                TAY
                 JMP SNGFLT
 
 

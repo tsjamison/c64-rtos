@@ -49,6 +49,7 @@ skip_install
                 LDY #mxtasks-1
 -               STA FLG0,Y     ;CLEAR ENABLE FLAG FOR TASKS 1..mxtasks-1
                 STA PRI0,Y     ;CLEAR PRIORITY ARRAY
+                STA GRP0,Y     ;CLEAR GROUP ARRAY
                 STA WAIT0,Y    ;CLEAR WAIT ARRAY
                 STA SIGNAL0,Y  ;CLEAR SIGNAL ARRAY
                 STA SLEEP0,Y   ;CLEAR SLEEP ARRAY LO
@@ -148,6 +149,9 @@ INT:
 ; Push A
 ; Push X
 ; Push Y
+                LDY TID
+                LDA GRP0,Y
+                STA GROUP
                 LDA #>UM_TS
                 PHA
                 LDA #<UM_TS
@@ -195,6 +199,7 @@ TS_ENABLE       .BYTE ?
 SP0:            .fill mxtasks
 FLG0:           .fill mxtasks
 PRI0:           .fill mxtasks
+GRP0:           .fill mxtasks
 WAIT0:          .fill mxtasks
 SIGNAL0:        .fill mxtasks
 SLEEP0:         .fill mxtasks
@@ -202,6 +207,7 @@ SLEEP1:         .fill mxtasks
 TID:            .BYTE ?
 NTID:           .BYTE ?
 MXPRI:          .BYTE ?
+GROUP:          .BYTE ?
 
 IRQL:           .BYTE ?
 IRQH:           .BYTE ?

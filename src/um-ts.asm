@@ -7,6 +7,8 @@ UM_TS_PROC:	TSX
 			LDA $102,X
 			ADC #0
 			STA $102,X
+			LDA #$FF
+			STA GROUP
 			PHP
 			PHA
 			PHA
@@ -38,7 +40,13 @@ UM_TS:
 -               LDA FLG0,Y
                 BEQ UM_TS.NEXT
 
-                LDA WAIT0,Y
+                CPY TID
+                BEQ +
+                LDA GRP0,Y
+                CMP GROUP
+                BEQ UM_TS.NEXT
+
++               LDA WAIT0,Y
                 BEQ +
                 AND SIGNAL0,Y
                 BEQ UM_TS.NEXT

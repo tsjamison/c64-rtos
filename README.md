@@ -5,18 +5,19 @@ Pre-Alpha
 
 Features planned for 1st release v1.0:
 * REU Detection
-* Tasks may share BASIC Banks with other tasks
+* Single-Queue Inter-Process Communication (Each task gets a single 256 byte queue mailbox)
 * Standardize Assembly-Language API
 * Create Assembly-language demos to demonstrate Assembly/BASIC multitasking interopability
 
 Features planned for 2nd release v2.0:
+* Tasks may share BASIC Banks with other tasks
 * Input device to sleep until Joystick Input
-* Inter-process Communication
 * Better demos
 * Cleaned up source code
 
 Features not planned, but considered:
 * Task Quantum for Time-Slicing
+* Multiple run-time defined IPC Queues
 * Other features upon request.
 
 
@@ -24,7 +25,7 @@ The following RTOS BASIC fuctions are implemented:
 | FUNCTION   | USR Command         | Description |
 | ---------- | ------------------- | ----------- |
 | GET_TID    | USR(0)              | Returns Task ID of currently running Task |
-| FORK       | USR(1),PRI,GRP      | Creats a new Task based off of current Task with a copy of BASIC RAM [fork()](https://en.wikipedia.org/wiki/Fork_(system_call)) |
+| FORK       | USR(1),PRI[,GRP]    | Creats a new Task based off of current Task with a copy of BASIC RAM [fork()](https://en.wikipedia.org/wiki/Fork_(system_call)) |
 | FORBID     | USR(2)              | forbid task rescheduling until a matching PERMIT |
 | PERMIT     | USR(3)              | permit task rescheduling |
 | SETPRI     | USR(4),TASK,PRI     | Set Task Priority. High priority tasks prevent low priority tasks from running |

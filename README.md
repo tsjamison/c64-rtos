@@ -10,35 +10,33 @@ Features planned for 1st release v1.0:
 * Create Assembly-language demos to demonstrate Assembly/BASIC multitasking interopability
 
 Features planned for 2nd release v2.0:
-* Tasks may share BASIC Banks with other tasks
-* Input device to sleep until Joystick Input
 * Better demos
 * Cleaned up source code
 
 Features not planned, but considered:
+* Tasks may share BASIC Banks with other tasks
 * Task Quantum for Time-Slicing
 * Multiple run-time defined IPC Queues
 * Other features upon request.
 
 
 The following RTOS BASIC fuctions are implemented:
-| FUNCTION   | USR Command         | Description |
-| ---------- | ------------------- | ----------- |
-| GET_TID    | USR(0)              | Returns Task ID of currently running Task |
-| FORK       | USR(1),PRI[,GRP]    | Creats a new Task based off of current Task with a copy of BASIC RAM [fork()](https://en.wikipedia.org/wiki/Fork_(system_call)) |
-| FORBID     | USR(2)              | forbid task rescheduling until a matching PERMIT |
-| PERMIT     | USR(3)              | permit task rescheduling |
-| SETPRI     | USR(4),TASK,PRI     | Set Task Priority. High priority tasks prevent low priority tasks from running |
-| GETPRI     | USR(5),TASK         | Get Task Priority. |
-| SETGRP     | USR(6),TASK,GRP     | Set Task Group. Tasks in same group are co-operative. Tasks in different groups are pre-emptive |
-| GETGRP     | USR(7),TASK         | Get Task Group |
-| WAIT       | USR(8),MASK         | Set Task to sleep, waiting for a signal in the mask to wake it up |
-| SIGNAL     | USR(9),TASK,SIG_SET | Signals a Waiting Task                    |
-| SLEEP      | USR(10),JIFFIES     | Sleeps current task for x Jiffies         |
-| BORDER:    | USR(11),COLOR       | *Deprecated* - Changes Border color       |
-| BACKGND:   | USR(12),COLOR       | *Deprecated* - Changes Background color   |
-| BASIC_SAVE | USR(13),BANK        | *Deprecated* - Saves BASIC state to REU   |
-| BASIC_LOAD | USR(14),BANK        | *Deprecated* - Loads BASIC state from REU |
+| FUNCTION   | USR Command          | Description |
+| ---------- | -------------------- | ----------- |
+| GET_TID    | USR(0)               | Returns Task ID of currently running Task |
+| FORK       | USR(1)               | Creats a new Task based off of current Task with a copy of BASIC RAM [fork()](https://en.wikipedia.org/wiki/Fork_(system_call)) |
+| FORBID     | USR(2)               | forbid task rescheduling until a matching PERMIT |
+| PERMIT     | USR(3)               | permit task rescheduling |
+| SETPRI     | USR(4),TASK,PRI      | Set Task Priority. High priority tasks prevent low priority tasks from running |
+| WAITM      | USR(5)ADDR,AND[,EOR] | Get Task Priority. |
+| SETGRP     | USR(6),TASK,GRP      | Set Task Group. Tasks in same group are co-operative. Tasks in different groups are pre-emptive |
+| WAIT       | USR(7),MASK          | Set Task to sleep, waiting for a signal in the mask to wake it up |
+| SIGNAL     | USR(8),TASK,SIG_SET  | Signals a Waiting Task                    |
+| SLEEP      | USR(9),JIFFIES       | Sleeps current task for x Jiffies         |
+| BORDER:    | USR(10),COLOR        | *Deprecated* - Changes Border color       |
+| BACKGND:   | USR(11),COLOR        | *Deprecated* - Changes Background color   |
+| BASIC_SAVE | USR(12),BANK         | *Deprecated* - Saves BASIC state to REU   |
+| BASIC_LOAD | USR(13),BANK         | *Deprecated* - Loads BASIC state from REU |
 
 Caveats: There is no error-handling. No parameter checking for valid range.
 Not every possible situation has been tested.

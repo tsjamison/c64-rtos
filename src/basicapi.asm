@@ -1,9 +1,14 @@
+POKER     = $14
+ANDMSK    = $49
+EORMSK    = $4A
+CHRGOT    = $79
 ERROR     = $A437
 evalparam = $AD9E
 skipcomma = $AEFD
 AYINT     = $B1BF
 FCERR     = $B248
 SNGFLT    = $B3A2
+GETNUM    = $B7EB
 convert16 = $B7F7
 FOUT      = $BDDD
 
@@ -24,8 +29,10 @@ USRTBL		.word USR_GETTID-1  ;USR(0)
 			.word USR_FORK-1    ;USR(1)
 			.word USR_FORBID-1  ;USR(2)
 			.word USR_PERMIT-1  ;USR(3)
+;			.word USR_REMTASK-1 ;USR()
 			.word USR_SETPRI-1  ;USR(4),TASK,PRI
-			.word USR_GETPRI-1  ;USR(5),TASK
+;			.word USR_GETPRI-1  ;USR(5),TASK
+			.word USR_WAITM-1   ;USR(5),ADDR,AND[,EOR]
 			.word USR_SETGRP-1  ;USR(6),TASK,GRP
 			.word USR_WAIT-1    ;USR(7),MASK
 			.word USR_SIGNAL-1  ;USR(8),TASK,SIG_SET
@@ -170,8 +177,8 @@ USR_SETGRP:     JSR COMBYT   ; TID
 ;
 ; $80 <reserved>
 ; $40 <timer>
-; $20 <joystick>
-; $10
+; $20 <memory>
+; $10 <queue>
 ;
 USR_WAIT:       JSR COMBYT
                 TXA
@@ -207,6 +214,30 @@ USR_SLEEP:      JSR skipcomma
                 TAY
                 JMP SNGFLT
 
+USR_WAITM:      JSR GETNUM
+                LDY TID
+                TXA
+                STA ANDMSK0,Y
+                LDX #$00
+                JSR CHRGOT
+                BEQ +
+                JSR COMBYT
++               LDY TID
+                TXA
+                STA EORMSK0,Y
+                TYA
+                ASL
+                TAY
+                LDA POKER+0
+                STA POKER0+0,Y
+                LDA POKER+1
+                STA POKER0+1,Y
+                LDA #WAITM_SIGNAL
+                JSR WAIT
+
+                LDX TID
+                LDY WAITM0,X
+                JMP SNGFLT
 
 USR_BORDER      JSR COMBYT
                 LDY $D020

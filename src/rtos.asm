@@ -11,7 +11,7 @@ MEMSIZ = $37
 mxtasks = 8
 
 TIMER_SIGNAL = $40
-
+WAITM_SIGNAL = $20
 
 
 
@@ -118,6 +118,12 @@ INT:
 ; @todo Update Timer / Input Devices
 ; @todo Update Quantum
 
+                LDA POKER+0
+                STA RTSL
+                LDA POKER+1
+                STA RTSH
+
+
 ; If SLEEP counter is 0, then skip
                 LDX #mxtasks-1
 -               LDA SLEEP0,X
@@ -140,8 +146,39 @@ INT:
                 ORA SIGNAL0,X
                 STA SIGNAL0,X
 
+; Check for WAITM
++               LDA WAIT0,X
+                AND #WAITM_SIGNAL
+                BEQ +
+
+; Test memory
+                TXA
+                ASL
+                TAY
+                LDA POKER0+0,Y
+                STA POKER+0
+                LDA POKER0+1,Y
+                STA POKER+1
+                LDY #$00
+                LDA (POKER),Y
+                EOR EORMSK0,X
+                AND ANDMSK0,X
+                BEQ +
+                STA WAITM0,X
+
+; Wait done, signal task
+                LDA #WAITM_SIGNAL
+                ORA SIGNAL0,X
+                STA SIGNAL0,X
+
+; Loop
 +               DEX
                 BPL -
+
+                LDA RTSL
+                STA POKER+0
+                LDA RTSH
+                STA POKER+1
 
                 LDA TS_ENABLE  ; 0 MEANS TASK SWITCH ENABLED
                 BNE INTEND
@@ -209,6 +246,10 @@ WAIT0:          .fill mxtasks
 SIGNAL0:        .fill mxtasks
 SLEEP0:         .fill mxtasks
 SLEEP1:         .fill mxtasks
+POKER0:         .fill mxtasks
+EORMSK0:        .fill mxtasks
+ANDMSK0:        .fill mxtasks
+WAITM0:         .fill mxtasks
 TID:            .BYTE ?
 NTID:           .BYTE ?
 MXPRI:          .BYTE ?

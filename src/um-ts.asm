@@ -1,13 +1,9 @@
 
 UM_TS_PROC:	TSX
-			CLC
-			LDA $101,X
-			ADC #1
-			STA $101,X
-			LDA $102,X
-			ADC #0
-			STA $102,X
-			LDA #$FF
+			INC $101,X
+			BNE +
+			INC $102,X
++			LDA #$FF
 			STA GROUP
 			PHP
 			PHA

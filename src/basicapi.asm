@@ -1,10 +1,11 @@
-FCERR     = $B248
-FOUT      = $BDDD
-AYINT     = $B1BF
-SNGFLT    = $B3A2
-skipcomma = $AEFD
+ERROR     = $A437
 evalparam = $AD9E
+skipcomma = $AEFD
+AYINT     = $B1BF
+FCERR     = $B248
+SNGFLT    = $B3A2
 convert16 = $B7F7
+FOUT      = $BDDD
 
 ; USR(.)[,...]
 ; 0   GET PID
@@ -51,13 +52,14 @@ USR_HANDLER	JSR AYINT
 
 
 USR_FORK:
-; find free task
+; save stack pointer
                 SEI
                 TSX
                 TXA
                 LDY TID
                 STA SP0,Y
 
+; Put USR_GETTID as RTI for new task
                 LDA #>USR_GETTID
                 PHA
                 LDA #<USR_GETTID
@@ -69,15 +71,23 @@ USR_FORK:
                 PHA
                 PHA
 
-                ; Find next empty slot
+; Find next empty slot
                 LDX TID
 -               INX
-                LDA FLG0,X
+                CPX #mxtasks
+                BNE +
+                LDX #$00
++               CPX TID
+                BNE +
+                LDX #16   ; OUT OF MEMORY ERROR
+                JMP ERROR
++               LDA FLG0,X
                 BNE -
                 STX NTID
                 LDA #$C0
                 STA FLG0,X
 
+; Duplicate current task's memory for new task
                 LDA #<+
                 STA RTSL
                 LDA #>+

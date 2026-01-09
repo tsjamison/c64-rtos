@@ -8,7 +8,7 @@ VARTAB = $2D
 STREND = $31
 FRETOP = $33
 MEMSIZ = $37
-mxtasks = 16
+mxtasks = 8
 
 TIMER_SIGNAL = $40
 
@@ -118,25 +118,30 @@ INT:
 ; @todo Update Timer / Input Devices
 ; @todo Update Quantum
 
+; If SLEEP counter is 0, then skip
                 LDX #mxtasks-1
 -               LDA SLEEP0,X
                 ORA SLEEP1,X
-                BEQ +
-				SEC
-				LDA SLEEP0,X
-				SBC #1
-				STA SLEEP0,X
+                BEQ ++
+
+; Decrement SLEEP counter
+                LDA SLEEP0,X
+                BNE +
+                DEC SLEEP1,X
++               DEC SLEEP0,X
+
+; If SLEEP counter is still running, then skip
                 LDA SLEEP1,X
-                SBC #0
-                STA SLEEP1,X
                 ORA SLEEP0,X
                 BNE +
+
+; SIGNAL task, because SLEEP timer just elapsed
                 LDA #TIMER_SIGNAL
                 ORA SIGNAL0,X
                 STA SIGNAL0,X
+
 +               DEX
                 BPL -
-
 
                 LDA TS_ENABLE  ; 0 MEANS TASK SWITCH ENABLED
                 BNE INTEND

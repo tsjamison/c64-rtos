@@ -10,6 +10,7 @@ Features planned for 1st release v1.0:
 * Join (Wait for a task to end)
 * Standardize Assembly-Language API
 * Create Assembly-language demos to demonstrate Assembly/BASIC multitasking interopability
+* Improve task status byte - Running, Ready-to-Run, Waiting, Schedulable
 
 Features planned for 2nd release v2.0:
 * Better demos

@@ -5,7 +5,9 @@ Pre-Alpha
 
 Features planned for 1st release v1.0:
 * REU Detection
-* Single-Queue Inter-Process Communication (Each task gets a single 256 byte queue mailbox)
+* Single-Queue Inter-Process Communication (A single 256 byte queue mailbox)
+* End Task
+* Join (Wait for a task to end)
 * Standardize Assembly-Language API
 * Create Assembly-language demos to demonstrate Assembly/BASIC multitasking interopability
 

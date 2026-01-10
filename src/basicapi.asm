@@ -1,13 +1,20 @@
 POKER     = $14
+INDEX1    = $22
 ANDMSK    = $49
 EORMSK    = $4A
+FACHO     = $62
 CHRGOT    = $79
 ERROR     = $A437
 evalparam = $AD9E
+FRMEVL    = $AD9E
 skipcomma = $AEFD
 AYINT     = $B1BF
 FCERR     = $B248
 SNGFLT    = $B3A2
+STRSPA    = $B47D
+PUTNEW    = $B4CA
+PREAM     = $B761
+LEN1      = $B782
 GETNUM    = $B7EB
 convert16 = $B7F7
 FOUT      = $BDDD
@@ -32,20 +39,18 @@ USRTBL		.word USR_GETTID-1  ;USR(0)
 ;			.word USR_REMTASK-1 ;USR()
 			.word USR_SETPRI-1  ;USR(4),TASK,PRI
 ;			.word USR_GETPRI-1  ;USR(5),TASK
-			.word USR_WAITM-1   ;USR(5),ADDR,AND[,EOR]
+			.word USR_WAITM-1   ;USR(5)ADDR,AND[,EOR]
 			.word USR_SETGRP-1  ;USR(6),TASK,GRP
 			.word USR_WAIT-1    ;USR(7),MASK
 			.word USR_SIGNAL-1  ;USR(8),TASK,SIG_SET
 			.word USR_SLEEP-1   ;USR(9),JIFFIES
-			.word USR_BORDER-1  ;USR(10),COLOR
-			.word USR_BACKGND-1 ;USR(11),COLOR
-			.word BASIC_SAVE-1  ;USR(12),BANK
-			.word BASIC_LOAD-1  ;USR(13),BANK
+			.word USR_NQ-1      ;USR(10)STR
+			.word USR_DQ-1      ;USR(11),LEN
 
 
 USR_HANDLER	JSR AYINT
 			LDA $65
-			CMP #13    ; # entries in USRTBL
+			CMP #12    ; # entries in USRTBL
 			bmi +
 			JMP $B248  ;?ILLEGAL QUANTITY  ERROR
 +			ASL
@@ -238,6 +243,37 @@ USR_WAITM:      JSR GETNUM
                 LDX TID
                 LDY WAITM0,X
                 JMP SNGFLT
+
+USR_NQ:         JSR FRMEVL
+                JSR LEN1
+                STY RTSL
+                LDX QTAIL0
+                LDY #$00
+-               LDA (INDEX1),Y
+                STA QDATA0,X
+                INX
+                INY
+                CPY RTSL
+                BNE -
+                STX QTAIL0
+                JMP SNGFLT
+
+USR_DQ:         JSR COMBYT
+                STX RTSL
+                TXA
+                JSR STRSPA
+                LDX QHEAD0
+                LDY #$00
+-               LDA QDATA0,X
+                STA (FACHO),Y
+                INX
+                INY
+                CPY RTSL
+                BNE -
+                STX QHEAD0
+                PLA
+                PLA
+                JMP PUTNEW
 
 USR_BORDER      JSR COMBYT
                 LDY $D020

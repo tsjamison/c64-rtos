@@ -9,6 +9,7 @@ STREND = $31
 FRETOP = $33
 MEMSIZ = $37
 mxtasks = 8
+qsize   = 16
 
 TIMER_SIGNAL = $40
 WAITM_SIGNAL = $20
@@ -54,6 +55,8 @@ skip_install
                 STA SIGNAL0,Y  ;CLEAR SIGNAL ARRAY
                 STA SLEEP0,Y   ;CLEAR SLEEP ARRAY LO
                 STA SLEEP1,Y   ;CLEAR SLEEP ARRAY HI
+                STA QHEAD0,Y   ;CLEAR QUEUE HEAD ARRAY
+                STA QTAIL0,Y   ;CLEAR QUEUE TAIL ARRAY
                 DEY
                 BPL -
                 LDA #$C0  ; Ready, BASIC, Group 0 Pri 0
@@ -250,6 +253,9 @@ POKER0:         .fill mxtasks
 EORMSK0:        .fill mxtasks
 ANDMSK0:        .fill mxtasks
 WAITM0:         .fill mxtasks
+QHEAD0:         .fill mxtasks
+QTAIL0:         .fill mxtasks
+
 TID:            .BYTE ?
 NTID:           .BYTE ?
 MXPRI:          .BYTE ?
@@ -261,4 +267,5 @@ IRQH:           .BYTE ?
 RTSL:           .BYTE ?
 RTSH:           .BYTE ?
 
-DATA:           .BYTE ?
+QDATA0:         .fill qsize
+

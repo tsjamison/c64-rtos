@@ -33,10 +33,8 @@ The following RTOS BASIC fuctions are implemented:
 | WAIT       | USR(7),MASK          | Set Task to sleep, waiting for a signal in the mask to wake it up |
 | SIGNAL     | USR(8),TASK,SIG_SET  | Signals a Waiting Task                    |
 | SLEEP      | USR(9),JIFFIES       | Sleeps current task for x Jiffies         |
-| BORDER:    | USR(10),COLOR        | *Deprecated* - Changes Border color       |
-| BACKGND:   | USR(11),COLOR        | *Deprecated* - Changes Background color   |
-| BASIC_SAVE | USR(12),BANK         | *Deprecated* - Saves BASIC state to REU   |
-| BASIC_LOAD | USR(13),BANK         | *Deprecated* - Loads BASIC state from REU |
+| NQ:        | USR(10)STR           | eNQueue a string *not fully implemented*  |
+| DQ:        | USR(11),LEN          | DeQueue a string *not fully implemented*  |
 
 Caveats: There is no error-handling. No parameter checking for valid range.
 Not every possible situation has been tested.
@@ -74,21 +72,14 @@ You can re-enable Task 2 by sending Task 2 the signal 1 it is waiting for:
 
 
 ```basic
-5 print "{CLR}"
-10 sys 49152:rem initialize rtos
-15 z=usr(4),0,0
-16 z=usr(4),1,1
-17 z=usr(4),2,2
-18 z=usr(4),3,0
-20 t=usr(1):rem fork, returns task id
-25 t=usr(1)
-30 print "{HOME}"
-40 for i=0 to t:print"{DOWN}";:next
-50 print t "task" ti
-60 goto 30
+10 sys 49152
+20 z=usr(4),1,1:x=usr(6),1,1
+30 t=usr(1)
+40 if t=0 then 40
+50 d=usr(5)56320,31,31-j
+60 j=31-peek(56320) and 31
+70 printd,j
+80 goto 50
 ```
-After all the forking, tere are 4 tasks running the same code in their own BASIC memory spaces.
-The variable t has its task id, which can also be read by calling USR(0).
 
-In a Loop, each task moves down to its own line and prints the time. That way you can see which tasks are running.
-
+This code runs the main task as an idle task. A second task waits on the Joystick port 2 to change and displays the state.

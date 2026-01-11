@@ -49,6 +49,8 @@ skip_install
 ; reset variables
                 LDA #$00
                 STA TID  ;TASK ID
+                STA QHEAD
+                STA QTAIL
                 LDY #mxtasks-1
 -               STA FLG0,Y     ;CLEAR ENABLE FLAG FOR TASKS 1..mxtasks-1
                 STA PRI0,Y     ;CLEAR PRIORITY ARRAY
@@ -57,8 +59,6 @@ skip_install
                 STA SIGNAL0,Y  ;CLEAR SIGNAL ARRAY
                 STA SLEEP0,Y   ;CLEAR SLEEP ARRAY LO
                 STA SLEEP1,Y   ;CLEAR SLEEP ARRAY HI
-                STA QHEAD0,Y   ;CLEAR QUEUE HEAD ARRAY
-                STA QTAIL0,Y   ;CLEAR QUEUE TAIL ARRAY
                 DEY
                 BPL -
                 LDA #$C0  ; Ready, BASIC, Group 0 Pri 0
@@ -255,13 +255,14 @@ POKER0:         .fill mxtasks
 EORMSK0:        .fill mxtasks
 ANDMSK0:        .fill mxtasks
 WAITM0:         .fill mxtasks
-QHEAD0:         .fill mxtasks
-QTAIL0:         .fill mxtasks
 
 TID:            .BYTE ?
 NTID:           .BYTE ?
 MXPRI:          .BYTE ?
 GROUP:          .BYTE ?
+
+QHEAD:         .BYTE ?
+QTAIL:         .BYTE ?
 
 IRQL:           .BYTE ?
 IRQH:           .BYTE ?

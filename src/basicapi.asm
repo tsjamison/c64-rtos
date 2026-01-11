@@ -19,38 +19,25 @@ GETNUM    = $B7EB
 convert16 = $B7F7
 FOUT      = $BDDD
 
-; USR(.)[,...]
-; 0   GET PID
-; 1   Fork
-; 2   Forbid
-; 3   Permit
-; 4   RemTask(task)
-; 5   SetTaskPri <PID>,<PRI>
-; 6   GetTaskPri <PID> PID of -1 is own PID
-; 7   Wait(signalSet), signalSet of 0 is YIELD
-; 8   Signal(task, signalSet)
-; 9   Sleep(jiffies)
-; 10  Joystick(port 1 and/or 2)
 
 USRTBL		.word USR_GETTID-1  ;USR(0)
 			.word USR_FORK-1    ;USR(1)
 			.word USR_FORBID-1  ;USR(2)
 			.word USR_PERMIT-1  ;USR(3)
-;			.word USR_REMTASK-1 ;USR()
-			.word USR_SETPRI-1  ;USR(4),TASK,PRI
-;			.word USR_GETPRI-1  ;USR(5),TASK
-			.word USR_WAITM-1   ;USR(5)ADDR,AND[,EOR]
+			.word USR_REMTASK-1 ;USR(4)[,TASK]
+			.word USR_SETPRI-1  ;USR(5),TASK,PRI
 			.word USR_SETGRP-1  ;USR(6),TASK,GRP
 			.word USR_WAIT-1    ;USR(7),MASK
 			.word USR_SIGNAL-1  ;USR(8),TASK,SIG_SET
 			.word USR_SLEEP-1   ;USR(9),JIFFIES
-			.word USR_NQ-1      ;USR(10)STR,TASK
-			.word USR_DQ-1      ;USR(11),LEN
+			.word USR_WAITM-1   ;USR(10)ADDR,AND[,EOR]
+			.word USR_NQ-1      ;USR(11)STR,TASK
+			.word USR_DQ-1      ;USR(12),LEN
 
 
 USR_HANDLER	JSR AYINT
 			LDA $65
-			CMP #12    ; # entries in USRTBL
+			CMP #13    ; # entries in USRTBL
 			bmi +
 			JMP $B248  ;?ILLEGAL QUANTITY  ERROR
 +			ASL
@@ -261,20 +248,20 @@ USR_NQ:         JSR FRMEVL
                 PLA
                 STA INDEX1+1
 
-                LDX QTAIL0
+                LDX QTAIL
                 LDY #$00
 -               LDA (INDEX1),Y
                 STA QDATA0,X
                 INX
                 INY
-                CPX QHEAD0
+                CPX QHEAD
                 BEQ +
                 CPY RTSL
                 BNE -
                 BEQ ++
 +               DEX
                 DEY
-+               STX QTAIL0
++               STX QTAIL
 
                 LDX RTSH
                 LDA #QUEUE_SIGNAL
@@ -294,15 +281,15 @@ USR_DQ:         JSR COMBYT
                 STA RTSL
 
                 SEC
-                LDA QTAIL0
-                SBC QHEAD0
+                LDA QTAIL
+                SBC QHEAD
                 CMP RTSL
                 BCS +
                 STA RTSL
                 BCC ++
 +               LDA RTSL
 +               JSR STRSPA
-                LDX QHEAD0
+                LDX QHEAD
                 LDY #$00
 -               LDA QDATA0,X
                 STA (DSCTMP+1),Y
@@ -310,8 +297,8 @@ USR_DQ:         JSR COMBYT
                 INY
                 CPY RTSL
                 BNE -
-                STX QHEAD0
-                CPX QTAIL0
+                STX QHEAD
+                CPX QTAIL
                 BEQ +
                 LDA #QUEUE_SIGNAL
                 LDX TID
@@ -322,6 +309,16 @@ USR_DQ:         JSR COMBYT
 +               PLA
                 PLA
                 JMP PUTNEW
+
+USR_REMTASK:
+                LDX TID
+                JSR CHRGOT
+                BEQ +
+                JSR COMBYT
++               LDA #$00
+                STA FLG0,X
+                JMP WAIT
+
 
 USR_BORDER      JSR COMBYT
                 LDY $D020

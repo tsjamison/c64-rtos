@@ -9,10 +9,12 @@ STREND = $31
 FRETOP = $33
 MEMSIZ = $37
 mxtasks = 8
-qsize   = 16
+qsize   = 256
+
 
 TIMER_SIGNAL = $40
 WAITM_SIGNAL = $20
+QUEUE_SIGNAL = $10
 
 
 

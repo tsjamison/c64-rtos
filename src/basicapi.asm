@@ -2,7 +2,7 @@ POKER     = $14
 INDEX1    = $22
 ANDMSK    = $49
 EORMSK    = $4A
-FACHO     = $62
+DSCTMP    = $61
 CHRGOT    = $79
 ERROR     = $A437
 evalparam = $AD9E
@@ -44,7 +44,7 @@ USRTBL		.word USR_GETTID-1  ;USR(0)
 			.word USR_WAIT-1    ;USR(7),MASK
 			.word USR_SIGNAL-1  ;USR(8),TASK,SIG_SET
 			.word USR_SLEEP-1   ;USR(9),JIFFIES
-			.word USR_NQ-1      ;USR(10)STR
+			.word USR_NQ-1      ;USR(10)STR,TASK
 			.word USR_DQ-1      ;USR(11),LEN
 
 
@@ -247,31 +247,79 @@ USR_WAITM:      JSR GETNUM
 USR_NQ:         JSR FRMEVL
                 JSR LEN1
                 STY RTSL
+
+                LDA INDEX1+1
+                PHA
+                LDA INDEX1+0
+                PHA
+
+                JSR COMBYT
+                STX RTSH
+
+                PLA
+                STA INDEX1+0
+                PLA
+                STA INDEX1+1
+
                 LDX QTAIL0
                 LDY #$00
 -               LDA (INDEX1),Y
                 STA QDATA0,X
                 INX
                 INY
+                CPX QHEAD0
+                BEQ +
                 CPY RTSL
                 BNE -
-                STX QTAIL0
+                BEQ ++
++               DEX
+                DEY
++               STX QTAIL0
+
+                LDX RTSH
+                LDA #QUEUE_SIGNAL
+                ORA SIGNAL0,X
+                STA SIGNAL0,X
+
                 JMP SNGFLT
 
 USR_DQ:         JSR COMBYT
-                STX RTSL
                 TXA
-                JSR STRSPA
+                PHA
+
+                LDA #QUEUE_SIGNAL
+                JSR WAIT
+
+                PLA
+                STA RTSL
+
+                SEC
+                LDA QTAIL0
+                SBC QHEAD0
+                CMP RTSL
+                BCS +
+                STA RTSL
+                BCC ++
++               LDA RTSL
++               JSR STRSPA
                 LDX QHEAD0
                 LDY #$00
 -               LDA QDATA0,X
-                STA (FACHO),Y
+                STA (DSCTMP+1),Y
                 INX
                 INY
                 CPY RTSL
                 BNE -
                 STX QHEAD0
-                PLA
+                CPX QTAIL0
+                BEQ +
+                LDA #QUEUE_SIGNAL
+                LDX TID
+                ORA SIGNAL0,X
+                STA SIGNAL0,X
+		; Remove the RTS address for function from the stack
+		; to avoid Type Mismatch error
++               PLA
                 PLA
                 JMP PUTNEW
 

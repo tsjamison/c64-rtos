@@ -5,7 +5,6 @@ Pre-Alpha
 
 Features planned for 1st release v1.0:
 * REU Detection
-* End Task
 * Join (Wait for a task to end)
 * Standardize Assembly-Language API
 * Create Assembly-language demos to demonstrate Assembly/BASIC multitasking interopability
@@ -23,20 +22,21 @@ Features not planned, but considered:
 
 
 The following RTOS BASIC fuctions are implemented:
-| FUNCTION   | USR Command          | Description |
-| ---------- | -------------------- | ----------- |
-| GET_TID    | USR(0)               | Returns Task ID of currently running Task |
-| FORK       | USR(1)               | Creats a new Task based off of current Task with a copy of BASIC RAM [fork()](https://en.wikipedia.org/wiki/Fork_(system_call)) |
-| FORBID     | USR(2)               | forbid task rescheduling until a matching PERMIT |
-| PERMIT     | USR(3)               | permit task rescheduling |
-| SETPRI     | USR(4),TASK,PRI      | Set Task Priority. High priority tasks prevent low priority tasks from running |
-| WAITM      | USR(5)ADDR,AND[,EOR] | Get Task Priority. |
-| SETGRP     | USR(6),TASK,GRP      | Set Task Group. Tasks in same group are co-operative. Tasks in different groups are pre-emptive |
-| WAIT       | USR(7),MASK          | Set Task to sleep, waiting for a signal in the mask to wake it up |
-| SIGNAL     | USR(8),TASK,SIG_SET  | Signals a Waiting Task                    |
-| SLEEP      | USR(9),JIFFIES       | Sleeps current task for x Jiffies         |
-| NQ:        | USR(10)STR,TASK      | eNQueue a string, notifying TASK          |
-| DQ:        | USR(11),LEN          | Yield and DeQueue a string up to LEN char |
+| FUNCTION   | USR Command           | Description |
+| ---------- | --------------------- | ----------- |
+| GET_TID    | USR(0)                | Returns Task ID of currently running Task |
+| FORK       | USR(1)                | Creats a new Task based off of current Task with a copy of BASIC RAM [fork()](https://en.wikipedia.org/wiki/Fork_(system_call)) |
+| FORBID     | USR(2)                | forbid task rescheduling until a matching PERMIT |
+| PERMIT     | USR(3)                | permit task rescheduling                         |
+| REMTASK    | USR(4)[,TASK]         | End Task                                         |
+| SETPRI     | USR(5),TASK,PRI       | Set Task Priority. High priority tasks prevent low priority tasks from running |
+| SETGRP     | USR(6),TASK,GRP       | Set Task Group. Tasks in same group are co-operative. Tasks in different groups are pre-emptive |
+| WAIT       | USR(7),MASK           | Set Task to sleep, waiting for a signal in the mask to wake it up |
+| SIGNAL     | USR(8),TASK,SIG_SET   | Signals a Waiting Task                    |
+| SLEEP      | USR(9),JIFFIES        | Sleeps current task for x Jiffies         |
+| WAITM      | USR(10)ADDR,AND[,EOR] | Get Task Priority.                        |
+| NQ:        | USR(11)STR,TASK       | eNQueue a string, notifying TASK          |
+| DQ:        | USR(12),LEN           | Yield and DeQueue a string up to LEN char |
 
 Caveats: There is no error-handling. No parameter checking for valid range.
 Not every possible situation has been tested.

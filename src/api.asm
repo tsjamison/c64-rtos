@@ -24,6 +24,8 @@ GET_GRP         LDY GRP0,X
 
 WAIT            LDY TID
                 STA WAIT0,Y
+                LDA #TS_WAIT
+                STA TASK_STATE0,Y
                 ; Going to Sleep
                 JSR UM_TS_PROC
                 ; Waking up from Sleep

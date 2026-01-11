@@ -11,11 +11,15 @@ MEMSIZ = $37
 mxtasks = 8
 qsize   = 256
 
+TS_INVALID = 0
+TS_RUN     = 2
+TS_READY   = 3
+TS_WAIT    = 4
+TS_REMOVED = 6
 
 TIMER_SIGNAL = $40
 WAITM_SIGNAL = $20
 QUEUE_SIGNAL = $10
-
 
 
 
@@ -52,7 +56,7 @@ skip_install
                 STA QHEAD
                 STA QTAIL
                 LDY #mxtasks-1
--               STA FLG0,Y     ;CLEAR ENABLE FLAG FOR TASKS 1..mxtasks-1
+-               STA TASK_STATE0,Y ;Set Task State to TS_INVALID
                 STA PRI0,Y     ;CLEAR PRIORITY ARRAY
                 STA GRP0,Y     ;CLEAR GROUP ARRAY
                 STA WAIT0,Y    ;CLEAR WAIT ARRAY
@@ -61,8 +65,8 @@ skip_install
                 STA SLEEP1,Y   ;CLEAR SLEEP ARRAY HI
                 DEY
                 BPL -
-                LDA #$C0  ; Ready, BASIC, Group 0 Pri 0
-                STA FLG0  ;SET ENABLE FLAG
+                LDA #TS_RUN
+                STA TASK_STATE0
 
 ; Initialize USR() pointer
                 LDA #<USR_HANDLER
@@ -196,9 +200,6 @@ INT:
 ; Push A
 ; Push X
 ; Push Y
-                LDY TID
-                LDA GRP0,Y
-                STA GROUP
                 LDA #>UM_TS
                 PHA
                 LDA #<UM_TS
@@ -210,11 +211,6 @@ INT:
                 PHA
                 PHA
 
-
-;                LDX SP0,Y
-;                TXS
-
-
 INTEND:
                 JMP (IRQL)
 
@@ -224,7 +220,7 @@ CLEANUP:
                 SEI
                 LDA #$00
                 LDY TID
-                STA FLG0,Y
+                STA TASK_STATE0,Y
                 CLI
                 BRK
 
@@ -244,7 +240,7 @@ CLEANUP:
 
 TS_ENABLE       .BYTE ?
 SP0:            .fill mxtasks
-FLG0:           .fill mxtasks
+TASK_STATE0:    .fill mxtasks
 PRI0:           .fill mxtasks
 GRP0:           .fill mxtasks
 WAIT0:          .fill mxtasks

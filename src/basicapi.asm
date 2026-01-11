@@ -80,11 +80,11 @@ USR_FORK:
                 BNE +
                 LDX #16   ; OUT OF MEMORY ERROR
                 JMP ERROR
-+               LDA FLG0,X
++               LDA TASK_STATE0,X
                 BNE -
                 STX NTID
-                LDA #$C0
-                STA FLG0,X
+                LDA #TS_READY
+                STA TASK_STATE0,X
 
 ; Duplicate current task's memory for new task
                 LDA #<+
@@ -315,8 +315,8 @@ USR_REMTASK:
                 JSR CHRGOT
                 BEQ +
                 JSR COMBYT
-+               LDA #$00
-                STA FLG0,X
++               LDA #TS_INVALID
+                STA TASK_STATE0,X
                 JMP WAIT
 
 

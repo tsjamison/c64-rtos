@@ -3,9 +3,7 @@ UM_TS_PROC:	TSX
 			INC $101,X
 			BNE +
 			INC $102,X
-+			LDA #$FF
-			STA GROUP
-			PHP
++			PHP
 			PHA
 			PHA
 			PHA
@@ -30,10 +28,19 @@ UM_TS:
 
                 LDY TID
                 STY NTID
-                LDA #$00
+
+                LDA #$FF
+                STA GROUP
+                LDA TASK_STATE0,Y
+                CMP #TS_RUN
+                BNE +
+                LDA GRP0,Y
+                STA GROUP
+
++               LDA #$00
                 STA MXPRI
 
--               LDA FLG0,Y
+-               LDA TASK_STATE0,Y
                 BEQ UM_TS.NEXT
 
                 CPY TID
@@ -65,8 +72,19 @@ UM_TS.NEXT      DEY
                 CPY NTID
                 BEQ TS_SWAP_END
 
-TS_SWAP:
+;New Task is different from current Task
+;Need to Task Swap
+;Update Task State for Running Task and New Task
+                LDA TASK_STATE0,Y
+                CMP #TS_RUN
+                BNE +
+                LDA #TS_READY
+                STA TASK_STATE0,Y
++               LDY NTID
+                LDA #TS_RUN
+                STA TASK_STATE0,Y
 
+;DO TASK SWAP
                 TSX
                 TXA
                 LDY TID

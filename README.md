@@ -5,7 +5,6 @@ Pre-Alpha
 
 Features planned for 1st release v1.0:
 * REU Detection
-* Single-Queue Inter-Process Communication (A single 256 byte queue mailbox)
 * End Task
 * Join (Wait for a task to end)
 * Standardize Assembly-Language API
@@ -36,8 +35,8 @@ The following RTOS BASIC fuctions are implemented:
 | WAIT       | USR(7),MASK          | Set Task to sleep, waiting for a signal in the mask to wake it up |
 | SIGNAL     | USR(8),TASK,SIG_SET  | Signals a Waiting Task                    |
 | SLEEP      | USR(9),JIFFIES       | Sleeps current task for x Jiffies         |
-| NQ:        | USR(10)STR           | eNQueue a string *not fully implemented*  |
-| DQ:        | USR(11),LEN          | DeQueue a string *not fully implemented*  |
+| NQ:        | USR(10)STR,TASK      | eNQueue a string, notifying TASK          |
+| DQ:        | USR(11),LEN          | Yield and DeQueue a string up to LEN char |
 
 Caveats: There is no error-handling. No parameter checking for valid range.
 Not every possible situation has been tested.

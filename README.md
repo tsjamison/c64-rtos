@@ -4,7 +4,6 @@ Multitasking library module for Commodore 64 8-bit computer, inspired by FreeRTO
 Pre-Alpha
 
 Features planned for 1st release v1.0:
-* REU Detection
 * Currently only runnable task can't sleep. I think it should be sleepable.
 
 Features planned for 2nd release v2.0:

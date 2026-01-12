@@ -5,6 +5,7 @@ EORMSK    = $4A
 DSCTMP    = $61
 CHRGOT    = $79
 ERROR     = $A437
+STROUT    = $AB1E
 evalparam = $AD9E
 FRMEVL    = $AD9E
 skipcomma = $AEFD
@@ -17,6 +18,7 @@ PREAM     = $B761
 LEN1      = $B782
 GETNUM    = $B7EB
 convert16 = $B7F7
+LINPRT    = $BDCD
 FOUT      = $BDDD
 
 
@@ -73,7 +75,7 @@ USR_FORK:
 ; Find next empty slot
                 LDX TID
 -               INX
-                CPX #mxtasks
+                CPX MAX_TASKS
                 BNE +
                 LDX #$00
 +               CPX TID

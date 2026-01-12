@@ -21,11 +21,43 @@ TIMER_SIGNAL = $40
 WAITM_SIGNAL = $20
 QUEUE_SIGNAL = $10
 
-
+;C64 RTOS v0.8
+;REU BANKS FOUND: 16
+;
 
                 .cpu "6502"
                 *= $C000   ; 0801 BASIC header
 
+                LDA #<VERSION
+                LDY #>VERSION
+                JSR STROUT
+                JSR REU_SIZE
+                STX RTSL
+                STA RTSH
+                JSR LINPRT
+                LDX RTSL
+                LDA RTSH
+                BEQ +
+                LDX #$FF
++               CPX #$00
+                BNE +
+                LDA #<REU_REQ
+                LDY #>REU_REQ
+                JMP STROUT
+
++               CPX #mxtasks
+                BCC +
+                LDX #mxtasks
++               STX MAX_TASKS
+                LDA #<MAXTASK
+                LDY #>MAXTASK
+                JSR STROUT
+                LDA #$00
+                LDX MAX_TASKS
+                JSR LINPRT
+                LDA #<RTOS_INSTALLED
+                LDY #>RTOS_INSTALLED
+                JSR STROUT
 
 ; INITSTACK
 start           SEI
@@ -39,6 +71,8 @@ start           SEI
                 BEQ skip_install
 
 install
+                
+
                 LDA CINV
                 STA IRQL
                 LDA CINV+1
@@ -55,7 +89,8 @@ skip_install
                 STA TID  ;TASK ID
                 STA QHEAD
                 STA QTAIL
-                LDY #mxtasks-1
+                LDY MAX_TASKS
+                DEY
 -               STA TASK_STATE0,Y ;Set Task State to TS_INVALID
                 STA PRI0,Y     ;CLEAR PRIORITY ARRAY
                 STA GRP0,Y     ;CLEAR GROUP ARRAY
@@ -134,7 +169,8 @@ INT:
 
 
 ; If SLEEP counter is 0, then skip
-                LDX #mxtasks-1
+                LDX MAX_TASKS
+                DEX
 -               LDA SLEEP0,X
                 ORA SLEEP1,X
                 BEQ ++
@@ -228,6 +264,7 @@ CLEANUP:
 .include "um-ts.asm"
 .include "api.asm"
 .include "basicapi.asm"
+.include "reu.asm"
 
 ; BASIC_BANK[]
 ; GROUP[]    No task-switching among tasks in same group until task is WAITING
@@ -237,8 +274,13 @@ CLEANUP:
 ; SIGNAL[]  Can signal before wait -- wait will return immediately
 ; SLEEP_TIME[] 16-bit sleep time in ticks. 0 for not sleeping
 
+VERSION:        .null "C64 RTOS V0.8 COPYRIGHT 2026 TIM JAMISON", "REU BANKS FOUND: "
+REU_REQ:        .null 13, "REU REQUIRED. RTOS NOT INSTALLED."
+MAXTASK:        .null 13, "TASKS AVAILABLE: "
+RTOS_INSTALLED  .null 13, "RTOS INSTALLED.", 13
 
 TS_ENABLE       .BYTE ?
+MAX_TASKS       .BYTE ?
 SP0:            .fill mxtasks
 TASK_STATE0:    .fill mxtasks
 PRI0:           .fill mxtasks
@@ -257,8 +299,8 @@ NTID:           .BYTE ?
 MXPRI:          .BYTE ?
 GROUP:          .BYTE ?
 
-QHEAD:         .BYTE ?
-QTAIL:         .BYTE ?
+QHEAD:          .BYTE ?
+QTAIL:          .BYTE ?
 
 IRQL:           .BYTE ?
 IRQH:           .BYTE ?
@@ -267,4 +309,7 @@ RTSL:           .BYTE ?
 RTSH:           .BYTE ?
 
 QDATA0:         .fill qsize
-
+TEMP:           .fill 257
+OLD             .BYTE ?
+SIZEL           .BYTE ?
+SIZEH           .BYTE ?

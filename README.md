@@ -1,7 +1,7 @@
 # c64-rtos
 Multitasking library module for Commodore 64 8-bit computer, inspired by FreeRTOS and Amiga OS.
 
-Pre-Alpha
+Version 0.8
 
 Features planned for 1st release v1.0:
 * Currently only runnable task can't sleep. I think it should be sleepable.

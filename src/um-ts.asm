@@ -56,7 +56,7 @@ UM_TS:
 
 +               LDA PRI0,Y
                 CMP MXPRI
-                BMI UM_TS.NEXT     ; maybe BCC or BCS?
+                BMI UM_TS.NEXT     ; @todo maybe BCC or BCS?
 
                 STY NTID
                 STA MXPRI

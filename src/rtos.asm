@@ -8,7 +8,7 @@ VARTAB = $2D
 STREND = $31
 FRETOP = $33
 MEMSIZ = $37
-mxtasks = 8
+mxtasks = 16
 qsize   = 256
 
 TS_INVALID = 0
@@ -274,7 +274,7 @@ CLEANUP:
 ; SIGNAL[]  Can signal before wait -- wait will return immediately
 ; SLEEP_TIME[] 16-bit sleep time in ticks. 0 for not sleeping
 
-VERSION:        .null "C64 RTOS V0.8 COPYRIGHT 2026 TIM JAMISON", "REU BANKS FOUND: "
+VERSION:        .null "C64 RTOS V0.9 COPYRIGHT 2026 TIM JAMISON", "REU BANKS FOUND: "
 REU_REQ:        .null 13, "REU REQUIRED. RTOS NOT INSTALLED."
 MAXTASK:        .null 13, "TASKS AVAILABLE: "
 RTOS_INSTALLED  .null 13, "RTOS INSTALLED.", 13

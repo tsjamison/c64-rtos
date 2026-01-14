@@ -26,56 +26,76 @@ UM_TS_PROC:	TSX
 UM_TS:
                 JSR FORBID
 
-                LDY TID
-                STY NTID
+UM_TS.LOOP      LDY #$00
+-               LDA TASK_STATE0,Y
+                CMP #TS_WAIT
+                BNE +
+                LDA WAIT0,Y
+                AND SIGNAL0,Y
+                BEQ +
+                LDA #TS_READY
+                STA TASK_STATE0,Y 
++               INY
+                CPY MAX_TASKS
+                BNE -
 
-                LDA #$FF
-                STA GROUP
+; If running then set as runnable, but not others of same group
+; if not running, then goup can be any
+                LDY TID
                 LDA TASK_STATE0,Y
                 CMP #TS_RUN
-                BNE +
-                LDA GRP0,Y
-                STA GROUP
-
-+               LDA #$00
-                STA MXPRI
-
--               LDA TASK_STATE0,Y
-                BEQ UM_TS.NEXT
-
-                CPY TID
                 BEQ +
+                CMP #TS_READY
+                BEQ +
+;not runnable
+                LDA #$FF
+                STA NTID
+                STA GROUP
+                LDA #$00
+                STA MXPRI
+                BEQ UM_TS.NEXT  ;BRA
+;runnable
++               LDA GRP0,Y
+                STA GROUP
+                LDA PRI0,Y
+                BPL +           ;BRA
+;loop
+-               LDA TASK_STATE0,Y
+                CMP #TS_READY
+                BNE UM_TS.NEXT
                 LDA GRP0,Y
                 CMP GROUP
                 BEQ UM_TS.NEXT
-
-+               LDA WAIT0,Y
-                BEQ +
-                AND SIGNAL0,Y
-                BEQ UM_TS.NEXT
-
-+               LDA PRI0,Y
+                LDA PRI0,Y
                 CMP MXPRI
-                BMI UM_TS.NEXT     ; @todo maybe BCC or BCS?
+                BCC UM_TS.NEXT
 
-                STY NTID
+; Best candidate so far
++               STY NTID
                 STA MXPRI
 
 UM_TS.NEXT      DEY
                 BPL +
                 LDY MAX_TASKS
                 DEY
-+
-                CPY TID
-                BNE -    ;DONE with LOOP
++               CPY TID
+                BNE -
 
                 CPY NTID
                 BEQ TS_SWAP_END
+                LDA NTID
+                CMP #$FF
+                BNE +
+                
+                LDA $D011
+                AND #$EF
+                STA $D011
+                JMP UM_TS.LOOP
 
 ;New Task is different from current Task
 ;Need to Task Swap
 ;Update Task State for Running Task and New Task
-                LDA TASK_STATE0,Y
++               LDA TASK_STATE0,Y
                 CMP #TS_RUN
                 BNE +
                 LDA #TS_READY
@@ -114,7 +134,11 @@ UM_TS.NEXT      DEY
                 LDX SP0,Y
                 TXS
 
-TS_SWAP_END     JSR PERMIT
+TS_SWAP_END     LDA $D011
+                ORA #$10
+                STA $D011
+
+                JSR PERMIT
                 CLI
 
                 PLA

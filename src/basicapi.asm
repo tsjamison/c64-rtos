@@ -17,29 +17,32 @@ PUTNEW    = $B4CA
 PREAM     = $B761
 LEN1      = $B782
 GETNUM    = $B7EB
+COMBYT    = $B7F1
 convert16 = $B7F7
 LINPRT    = $BDCD
 FOUT      = $BDDD
 
 
-USRTBL		.word USR_GETTID-1  ;USR(0)
-			.word USR_FORK-1    ;USR(1)
-			.word USR_FORBID-1  ;USR(2)
-			.word USR_PERMIT-1  ;USR(3)
-			.word USR_REMTASK-1 ;USR(4)[,TASK]
-			.word USR_SETPRI-1  ;USR(5),TASK,PRI
-			.word USR_SETGRP-1  ;USR(6),TASK,GRP
-			.word USR_WAIT-1    ;USR(7),MASK
-			.word USR_SIGNAL-1  ;USR(8),TASK,SIG_SET
-			.word USR_SLEEP-1   ;USR(9),JIFFIES
-			.word USR_WAITM-1   ;USR(10)ADDR,AND[,EOR]
-			.word USR_NQ-1      ;USR(11)STR,TASK
-			.word USR_DQ-1      ;USR(12),LEN
+USRTBL		.word USR_GETTID-1   ;USR(0)
+			.word USR_FORK-1     ;USR(1)
+			.word USR_FORBID-1   ;USR(2)
+			.word USR_PERMIT-1   ;USR(3)
+			.word USR_REMTASK-1  ;USR(4)[,TASK]
+			.word USR_SETPRI-1   ;USR(5),TASK,PRI
+			.word USR_SETGRP-1   ;USR(6),TASK,GRP
+			.word USR_WAIT-1     ;USR(7),MASK
+			.word USR_SIGNAL-1   ;USR(8),TASK,SIG_SET
+			.word USR_SLEEP-1    ;USR(9),JIFFIES
+			.word USR_WAITM-1    ;USR(10)ADDR,AND[,EOR]
+			.word USR_NQ-1       ;USR(11)STR,TASK
+			.word USR_DQ-1       ;USR(12),LEN
+			.word USR_MAXTASKS-1 ;USR(13)
+			.word USR_STATE-1    ;USR(14),TASK
 
 
 USR_HANDLER	JSR AYINT
 			LDA $65
-			CMP #13    ; # entries in USRTBL
+			CMP #15    ; # entries in USRTBL
 			bmi +
 			JMP $B248  ;?ILLEGAL QUANTITY  ERROR
 +			ASL
@@ -106,10 +109,11 @@ USR_FORK:
                 TXS
                 CLI
 
+
 ; Set Return code based on current Task ID
 USR_GETTID:
                 LDY TID
-                JMP $B3A2
+                JMP SNGFLT
 
 USR_FORBID:     JSR FORBID
                 LDY TS_ENABLE
@@ -117,6 +121,16 @@ USR_FORBID:     JSR FORBID
 
 USR_PERMIT:     JSR PERMIT
                 LDY TS_ENABLE
+                JMP SNGFLT
+
+USR_MAXTASKS:
+                LDY MAX_TASKS
+                JMP SNGFLT
+
+
+USR_STATE:
+                JSR COMBYT   ; TID
+                JSR GET_STATE
                 JMP SNGFLT
 
 USR_SETPRI:     JSR COMBYT   ; TID
@@ -235,7 +249,7 @@ USR_WAITM:      JSR GETNUM
 
 USR_NQ:         JSR FRMEVL
                 JSR LEN1
-                STY RTSL
+                STY NEWL
 
                 LDA INDEX1+1
                 PHA
@@ -243,7 +257,7 @@ USR_NQ:         JSR FRMEVL
                 PHA
 
                 JSR COMBYT
-                STX RTSH
+                STX NEWH
 
                 PLA
                 STA INDEX1+0
@@ -258,14 +272,14 @@ USR_NQ:         JSR FRMEVL
                 INY
                 CPX QHEAD
                 BEQ +
-                CPY RTSL
+                CPY NEWL
                 BNE -
                 BEQ ++
 +               DEX
                 DEY
 +               STX QTAIL
 
-                LDX RTSH
+                LDX NEWH
                 LDA #QUEUE_SIGNAL
                 ORA SIGNAL0,X
                 STA SIGNAL0,X
@@ -280,16 +294,16 @@ USR_DQ:         JSR COMBYT
                 JSR WAIT
 
                 PLA
-                STA RTSL
+                STA NEWL
 
                 SEC
                 LDA QTAIL
                 SBC QHEAD
-                CMP RTSL
+                CMP NEWL
                 BCS +
-                STA RTSL
+                STA NEWL
                 BCC ++
-+               LDA RTSL
++               LDA NEWL
 +               JSR STRSPA
                 LDX QHEAD
                 LDY #$00
@@ -297,7 +311,7 @@ USR_DQ:         JSR COMBYT
                 STA (DSCTMP+1),Y
                 INX
                 INY
-                CPY RTSL
+                CPY NEWL
                 BNE -
                 STX QHEAD
                 CPX QTAIL
@@ -319,7 +333,9 @@ USR_REMTASK:
                 JSR COMBYT
 +               LDA #TS_INVALID
                 STA TASK_STATE0,X
-                JMP WAIT
+                JSR UM_TS_PROC   ; Will never come back
+                LDY #$00
+                JMP SNGFLT
 
 
 USR_BORDER      JSR COMBYT

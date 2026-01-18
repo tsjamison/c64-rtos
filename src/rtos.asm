@@ -1,13 +1,11 @@
 ; 64tass.exe -o ../release/rtos rtos.asm
 
-USRADD = $0311
-CINV   = $0314
-TIME_SLICES = 0    ; Unit is Jiffies, 1/60 of a second
-COMBYT = $B7F1
-VARTAB = $2D
-STREND = $31
-FRETOP = $33
-MEMSIZ = $37
+USRADD  = $0311
+CINV    = $0314
+VARTAB  = $2D
+STREND  = $31
+FRETOP  = $33
+MEMSIZ  = $37
 mxtasks = 16
 qsize   = 256
 
@@ -21,22 +19,37 @@ TIMER_SIGNAL = $40
 WAITM_SIGNAL = $20
 QUEUE_SIGNAL = $10
 
-;C64 RTOS v0.8
-;REU BANKS FOUND: 16
-;
 
                 .cpu "6502"
                 *= $C000   ; 0801 BASIC header
+RTOS_INIT       JMP INITIALIZE
+RTOS_FORBID     JMP FORBID
+RTOS_PERMIT     JMP PERMIT
+RTOS_FORK       JMP FORK
+RTOS_ADDTASK    JMP addtask
+RTOS_ENDTASK    JMP END_TASK
+RTOS_SETPRI     JMP SET_PRI
+RTOS_GETPRI     JMP GET_PRI
+RTOS_SETGRP     JMP SET_GRP
+RTOS_GETGRP     JMP GET_GRP
+RTOS_WAIT       JMP WAIT
+RTOS_SIGNAL     JMP SIGNAL
+RTOS_SLEEP      JMP SLEEP
+RTOS_WAITMEM    JMP WAIT_MEMORY
+;RTOS_ENQUEUE    JMP EnQueue
+;RTOS_DEQUEUE    JMP DeQueue
 
+
+INITIALIZE:
                 LDA #<VERSION
                 LDY #>VERSION
                 JSR STROUT
                 JSR REU_SIZE
-                STX RTSL
-                STA RTSH
+                STX NEWL
+                STA NEWH
                 JSR LINPRT
-                LDX RTSL
-                LDA RTSH
+                LDX NEWL
+                LDA NEWH
                 BEQ +
                 LDX #$FF
 +               CPX #$00
@@ -71,7 +84,6 @@ start           SEI
                 BEQ skip_install
 
 install
-                
 
                 LDA CINV
                 STA IRQL
@@ -251,14 +263,7 @@ INTEND:
                 JMP (IRQL)
 
 
-; @todo - NEEDS UPDATED
-CLEANUP:
-                SEI
-                LDA #$00
-                LDY TID
-                STA TASK_STATE0,Y
-                CLI
-                BRK
+
 
 
 .include "um-ts.asm"
@@ -307,6 +312,9 @@ IRQH:           .BYTE ?
 
 RTSL:           .BYTE ?
 RTSH:           .BYTE ?
+
+NEWL:           .BYTE ?
+NEWH:           .BYTE ?
 
 QDATA0:         .fill qsize
 TEMP:           .fill 257

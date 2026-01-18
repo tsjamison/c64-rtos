@@ -16,10 +16,3 @@ EQU    = $b2
 USR    = $b7
 PEEK   = $c2
 
-;10 sys 49152
-;20 t=usr(1)
-;30 if t=1 then 100
-;40 print "hello, world" ti
-;50 goto 40
-;100 fori=0to15:poke53281,i:next:goto100
-

@@ -89,7 +89,7 @@ UM_TS.NEXT      DEY
                 
                 LDA $D011
                 AND #$EF
-                STA $D011
+;                STA $D011
                 JMP UM_TS.LOOP
 
 ;New Task is different from current Task
@@ -136,7 +136,7 @@ UM_TS.NEXT      DEY
 
 TS_SWAP_END     LDA $D011
                 ORA #$10
-                STA $D011
+;                STA $D011
 
                 JSR PERMIT
                 CLI

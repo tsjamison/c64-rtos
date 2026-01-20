@@ -28,15 +28,22 @@ The following RTOS BASIC fuctions are implemented:
 | NQ:        | USR(11)STR,TASK       | eNQueue a string, notifying TASK          |
 | DQ:        | USR(12),LEN           | Yield and DeQueue a string up to LEN char |
 
-### USR(0) GET TASK ID
-Returns Task ID of the currently running process
+### USR(0) - GET TASK ID
+Returns Task ID of the currently running process.
+
+Parameters: <None>  
+Returns: Task ID
+
 Example:
 ```
 print usr(0)
 ```
 
-### USR(1) FORK
+### USR(1) - FORK
 Creats a new Task based off of current Task with a copy of BASIC RAM [fork()](https://en.wikipedia.org/wiki/Fork_(system_call))
+
+Parameters: <None>  
+Returns: Task ID
 
 Example:
 ```
@@ -45,6 +52,27 @@ t=usr(1)
 This duplicates the current process, with the task number getting returned.
 This results in now two copies of the program getting executed at the same time.
 The original copy usr(1) returns 0. The newly created copy returns usr(1).
+
+### USR(2) - FORBID
+
+Prevents other tasks from being scheduled to run by the dispatcher, until a matching Permit() is executed.
+
+Parameters: <None>  
+Returns: Current Forbid level. Need that many PERMIT to re-enable task switching.
+
+### USR(3) - PERMIT
+
+Allows other tasks to be scheduled when paired with matching FORBID.
+
+Parameters: <None>  
+Returns: Current Forbid level. Need that many PERMIT to re-enable task switching.
+0 means that task switching is enabled.
+
+### USR(4) - END TASK
+
+
+Parameters: <None>  
+Returns: Current Forbid level. Need that many PERMIT to re-enable task switching.
 
 
 ## Notes

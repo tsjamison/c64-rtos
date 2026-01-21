@@ -85,12 +85,16 @@ Returns: Previous priority
 Sets the group of the task given by the parameter.
 A task will never interrupt another task in the same group.
 
-Parameters: Task ID, Group  
-Returns: Previous group
+### USR(7),MASK - Wait
+A running task calls Wait to enterr a waiting or sleeping stat, relinquishing the CPU to othehr ready tasks.
+The function takes a bit mask as an argument, specifying whihch of the task's 8 available signals it is interested in.
+The task resumes execution when any of the specified signals are sent to it by anotehr task, an interrupt, or an I/O event. The Wait call returns a mask indicating which signals were active when the task awoke, allowing theh program to determine the cause of the event.
 
+Parameters: MASK  
+Returns: bit-maks of signals that awoke the task
 
+### USR(8),TASK,SIG_SET - Signal
 
-###
 
 ## Notes
 

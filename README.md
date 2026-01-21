@@ -54,26 +54,43 @@ This results in now two copies of the program getting executed at the same time.
 The original copy usr(1) returns 0. The newly created copy returns usr(1).
 
 ### USR(2) - FORBID
-
 Prevents other tasks from being scheduled to run by the dispatcher, until a matching Permit() is executed.
 
 Parameters: <None>  
 Returns: Current Forbid level. Need that many PERMIT to re-enable task switching.
 
 ### USR(3) - PERMIT
-
 Allows other tasks to be scheduled when paired with matching FORBID.
 
 Parameters: <None>  
 Returns: Current Forbid level. Need that many PERMIT to re-enable task switching.
 0 means that task switching is enabled.
 
-### USR(4) - END TASK
+### USR(4)[,TASK] - END TASK
+Ends the task specified by the optional parameter, or ends the task of the caller
+if the task ID is not provided.
+
+Parameters: Task ID (Optional)  
+Returns: 0
+
+### USR(5),TASK,PRI - Set Priority
+Sets the priority of the task given by the parameter.
+The next task that is ready task with the highest priority
+will be scheduled to run.
+
+Parameters: Task ID, Priority  
+Returns: Previous priority
+
+### USR(6),TASK,GROUP - Set Group
+Sets the group of the task given by the parameter.
+A task will never interrupt another task in the same group.
+
+Parameters: Task ID, Group  
+Returns: Previous group
 
 
-Parameters: <None>  
-Returns: Current Forbid level. Need that many PERMIT to re-enable task switching.
 
+###
 
 ## Notes
 

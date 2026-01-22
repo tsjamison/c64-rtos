@@ -86,14 +86,41 @@ Sets the group of the task given by the parameter.
 A task will never interrupt another task in the same group.
 
 ### USR(7),MASK - Wait
-A running task calls Wait to enterr a waiting or sleeping stat, relinquishing the CPU to othehr ready tasks.
+This function will cause the current task to suspend waiting for
+one or more signals.  When one or more of the specified signals
+occurs, the task will return to the ready state, and those signals
+will be cleared.
+
+If a signal occurred prior to calling Wait(), the wait condition will
+be immediately satisfied, and the task will continue to run without
+delay.
+
 The function takes a bit mask as an argument, specifying whihch of the task's 8 available signals it is interested in.
-The task resumes execution when any of the specified signals are sent to it by anotehr task, an interrupt, or an I/O event. The Wait call returns a mask indicating which signals were active when the task awoke, allowing theh program to determine the cause of the event.
+The task resumes execution when any of the specified signals are sent to it by another task, an interrupt, or an I/O event. The Wait call returns a mask indicating which signals were active when the task awoke, allowing the program to determine the cause of the event.
+
+This function is considered "low level".  Its main purpose is to
+support multiple higher level functions like Sleep and WaitMem.
 
 Parameters: MASK  
 Returns: bit-maks of signals that awoke the task
 
 ### USR(8),TASK,SIG_SET - Signal
+This function signals a task with the given signals.  If the task
+is currently waiting for one or more of these signals, it will be
+made ready and a reschedule will occur. If the task is not waiting
+for any of these signals, the signals will be posted to the task
+for possible later use. A signal may be sent to a task regardless
+of whether its running, ready, or waiting.
+
+This function is considered "low level".  Its main purpose is to
+support multiple higher level functions like Sleep and WaitMem.
+
+Parameters:  
+    task - the task to be signalled  
+    signals - the signals to be sent  
+Returns: The task's signal set.
+
+### USR(9)
 
 
 ## Notes

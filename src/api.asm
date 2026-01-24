@@ -74,7 +74,14 @@ WAIT            LDY TID
 ;USED  : ---
 SIGNAL 			ORA SIGNAL0,Y
 				STA SIGNAL0,Y
-				RTS
+				LDA WAIT0,Y
+				AND SIGNAL0,Y
+				BEQ +
+                ; Going to Sleep
+                JSR UM_TS_PROC
+                ; Waking up from Sleep
+				LDA SIGNAL0,Y
++				RTS
 
 ;INPUT : A-Y
 ;OUTPUT: A--
@@ -147,62 +154,82 @@ ENQUEUE:
                 STA SIGNAL0,X
                 RTS
 
-;Y = Length
-;INDEX1 Address to put data to
+;Parameter: X = Length requested
+;Return Y = Length received
+;(DSCTMP+1) = ptr to string (allocated as BASIC string)
 DEQUEUE:
-                TYA
-                PHA
-                LDA #QUEUE_SIGNAL
+                STX NEWL                ; Store for later comparison
+
+                LDA QTAIL               
+                CMP QHEAD               ; If there are bytes
+                BNE +                   ; Then don't wait
+                LDA #QUEUE_SIGNAL       ; Wait for bytes
                 JSR WAIT
 
-                PLA
-                STA NEWL
-
-                SEC
++               SEC
                 LDA QTAIL
-                SBC QHEAD
+                SBC QHEAD               ; Calculate # bytes received
                 CMP NEWL
-                BCS +
-                STA NEWL
-                BCC ++
-+               LDA NEWL
-+               JSR STRSPA
-                LDX QHEAD
-                LDY #$00
--               LDA QDATA0,X
-                STA (DSCTMP+1),Y
+                BCS +                   ; skip if Received >= Requested
+                STA NEWL                ; Less than requested
++               LDA NEWL                ; Get # bytes to return
+                JSR STRSPA              ; Allocate BASIC string variable
+                LDX QHEAD               ; X = Source Index
+                LDY #$00                ; Y = Destination Index
+-               LDA QDATA0,X            ; Get a byte
+                STA (DSCTMP+1),Y        ; Store a byte
                 INX
                 INY
                 CPY NEWL
-                BNE -
-                STX QHEAD
+                BNE -                   ; Loop until all bytes copied
+                STX QHEAD               ; Update QHEAD
                 CPX QTAIL
-                BEQ +
+                BEQ +                   ; Skip if no bytes remaining
                 LDA #QUEUE_SIGNAL
                 LDX TID
                 ORA SIGNAL0,X
-                STA SIGNAL0,X
-		; Remove the RTS address for function from the stack
-		; to avoid Type Mismatch error
-+               PLA
-                PLA
-                JMP PUTNEW
+                STA SIGNAL0,X           ; Set Signal if more bytes remaining
++				LDY NEWH
+				RTS
 
 
 
-FORK:
-; save stack pointer
+; NEWL = Low Byte of start
+; NEWH = High Byte of start
+; FORK_FLAG = non-zero = FORK, zero = AddTask
+NEW_TASK:
                 JSR FORBID
+ 
+                STA NEWL
+                STY NEWH
+                STX FORK_FLAG
 
+; save stack pointer
                 TSX
                 TXA
                 LDY TID
                 STA SP0,Y
 
-; Put GET_TID as RTI for new task
-                LDA #>GET_TID
+                LDA FORK_FLAG   ; non-zero = FORK
+                BNE +           ; zero = AddTask
+
+                LDX #$FF
+                TXS
+
+; Put END_TASK as RTS
+                LDA #>END_TASK
                 PHA
-                LDA #<GET_TID
+                LDA #<END_TASK-1
+                PHA
+
+; Put GET_TID as RTI for new task
++               LDA FORK_FLAG
+                BEQ +
+                PLA
+                PLA
++               LDA NEWH
+                PHA
+                LDA NEWL
                 PHA
                 LDA #$20
                 PHA
@@ -212,21 +239,24 @@ FORK:
                 PHA
 
 ; Find next empty slot
-                LDX TID
--               INX
-                CPX MAX_TASKS
+                LDY TID
+-               INY
+                CPY MAX_TASKS
                 BNE +
-                LDX #$00
-+               CPX TID
+                LDY #$00
++               CPY TID
                 BNE +
                 LDX #16   ; OUT OF MEMORY ERROR
                 JMP ERROR
-+               LDA TASK_STATE0,X
++               LDA TASK_STATE0,Y
                 BNE -
 
-                STX NTID
+                STY NTID
                 LDA #TS_READY
-                STA TASK_STATE0,X
+                STA TASK_STATE0,Y
+                TSX
+                TXA
+                STA SP0,Y
 
 ; Duplicate current task's memory for new task
                 LDA #<+
@@ -236,12 +266,7 @@ FORK:
                 LDY #XFER_SAVE
                 JMP XFER_BASIC_XY
 
-+               LDY NTID
-                TSX
-                TXA
-                STA SP0,Y
-
-                LDY TID
++               LDY TID
                 LDX SP0,Y
                 TXS
                 JSR PERMIT
@@ -252,91 +277,20 @@ GET_TID         LDY TID
 ; @todo Update addtask to work correctly
 ; A is low
 ; Y is high
+FORK
+; save stack pointer
+                LDA #<GET_TID
+                LDY #>GET_TID
+                LDX #$FF
+                JMP NEW_TASK
+
+; @todo Update addtask to work correctly
+; A is low
+; Y is high
 addtask
 ; save stack pointer
-                STA NEWL
-                STY NEWH
-                JSR FORBID
-
-                TSX
-                TXA
-                LDX TID
-                STA SP0,X
-
-; Save current task's memory so new task can be created
-; without affecting current task
-                LDA #<+
-                STA RTSL
-                LDA #>+
-                STA RTSH
-                LDY #XFER_SAVE
-                JMP XFER_BASIC_XY
-
-+               LDX #$FF
-                TXS
-
-; Put Removetask as RTS
-                LDA #>END_TASK
-                PHA
-                LDA #<END_TASK-1
-                PHA
-
-                LDA NEWL
-                PHA
-                LDA NEWH
-                PHA
-                LDA #$20
-                PHA
-                LDA #$00
-                PHA
-                PHA
-                PHA
-
-; Find next empty slot
-                LDX TID
--               INX
-                CPX MAX_TASKS
-                BNE +
                 LDX #$00
-+               CPX TID
-                BNE +
-                LDX #16   ; OUT OF MEMORY ERROR
-                JMP ERROR
-+               LDA TASK_STATE0,X
-                BNE -
-
-                STX NTID
-                LDA #TS_READY
-                STA TASK_STATE0,X
-
-; Save new task's memory
-                LDA #<+
-                STA RTSL
-                LDA #>+
-                STA RTSH
-                LDY #XFER_SAVE
-                JMP XFER_BASIC_XY
-
-+               LDY NTID
-                TSX
-                TXA
-                STA SP0,Y
-
-; Load original task's memory
-                LDY TID
-                LDA #<+
-                STA RTSL
-                LDA #>+
-                STA RTSH
-                LDY #XFER_LOAD
-                JMP XFER_BASIC_XY
-
-+               LDX SP0,Y
-                TXS
-                JSR PERMIT
-                LDY NTID
-                RTS
-
+                JMP NEW_TASK
 
 ; @todo - NEEDS UPDATED
 END_TASK:

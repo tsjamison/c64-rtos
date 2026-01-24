@@ -310,11 +310,12 @@ QTAIL:          .BYTE ?
 IRQL:           .BYTE ?
 IRQH:           .BYTE ?
 
-RTSL:           .BYTE ?
-RTSH:           .BYTE ?
-
 NEWL:           .BYTE ?
 NEWH:           .BYTE ?
+FORK_FLAG:      .BYTE ?
+
+RTSL:           .BYTE ?
+RTSH:           .BYTE ?
 
 QDATA0:         .fill qsize
 TEMP:           .fill 257

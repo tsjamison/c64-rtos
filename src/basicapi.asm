@@ -286,45 +286,16 @@ USR_NQ:         JSR FRMEVL
 
                 JMP SNGFLT
 
-USR_DQ:         JSR COMBYT
-                TXA
-                PHA
 
-                LDA #QUEUE_SIGNAL
-                JSR WAIT
-
-                PLA
-                STA NEWL
-
-                SEC
-                LDA QTAIL
-                SBC QHEAD
-                CMP NEWL
-                BCS +
-                STA NEWL
-                BCC ++
-+               LDA NEWL
-+               JSR STRSPA
-                LDX QHEAD
-                LDY #$00
--               LDA QDATA0,X
-                STA (DSCTMP+1),Y
-                INX
-                INY
-                CPY NEWL
-                BNE -
-                STX QHEAD
-                CPX QTAIL
-                BEQ +
-                LDA #QUEUE_SIGNAL
-                LDX TID
-                ORA SIGNAL0,X
-                STA SIGNAL0,X
+; Don't wait if data is available
+USR_DQ:
+                JSR COMBYT              ; Get required LEN parameter
+                JSR DEQUEUE
 		; Remove the RTS address for function from the stack
 		; to avoid Type Mismatch error
-+               PLA
                 PLA
-                JMP PUTNEW
+                PLA
+                JMP PUTNEW              ; Return new BASIC string
 
 USR_REMTASK:
                 LDX TID

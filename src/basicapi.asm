@@ -290,6 +290,7 @@ USR_NQ:         JSR FRMEVL
 ; Don't wait if data is available
 USR_DQ:
                 JSR COMBYT              ; Get required LEN parameter
+                TXA
                 JSR DEQUEUE
 		; Remove the RTS address for function from the stack
 		; to avoid Type Mismatch error

@@ -314,6 +314,9 @@ IRQH:           .BYTE ?
 NEWL:           .BYTE ?
 NEWH:           .BYTE ?
 FORK_FLAG:      .BYTE ?
+ENQUEUE_L       .BYTE ?
+ENQUEUE_T       .BYTE ?
+DEQUEUE_L       .BYTE ?
 
 RTSL:           .BYTE ?
 RTSH:           .BYTE ?

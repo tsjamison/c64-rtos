@@ -135,8 +135,8 @@ WAIT_MEMORY:
 ;X = Task to signal
 ;INDEX1 = Address to get data from
 ENQUEUE:
-                STY NEWL
-                STX NEWH
+                STY ENQUEUE_L
+                STX ENQUEUE_T
 
                 LDX QTAIL
                 LDY #$00
@@ -146,38 +146,38 @@ ENQUEUE:
                 INY
                 CPX QHEAD
                 BEQ +
-                CPY NEWL
+                CPY ENQUEUE_L
                 BNE -
                 BEQ ++
 +               DEX
                 DEY
 +               STX QTAIL
 
-                LDX NEWH
+                LDX ENQUEUE_T
                 LDA #QUEUE_SIGNAL
                 ORA SIGNAL0,X
                 STA SIGNAL0,X
                 RTS
 
-;Parameter: X = Length requested
+;Parameter: A = Length requested
 ;Return Y = Length received
 ;(DSCTMP+1) = ptr to string (allocated as BASIC string)
 DEQUEUE:
-                STX NEWL                ; Store for later comparison
-
-                LDA QTAIL               
-                CMP QHEAD               ; If there are bytes
+                LDX QTAIL               
+                CPX QHEAD               ; If there are bytes
                 BNE +                   ; Then don't wait
+                PHA
                 LDA #QUEUE_SIGNAL       ; Wait for bytes
                 JSR WAIT
-
-+               SEC
+                PLA
++               STA DEQUEUE_L
+                SEC
                 LDA QTAIL
                 SBC QHEAD               ; Calculate # bytes received
-                CMP NEWL
+                CMP DEQUEUE_L
                 BCS +                   ; skip if Received >= Requested
-                STA NEWL                ; Less than requested
-+               LDA NEWL                ; Get # bytes to return
+                STA DEQUEUE_L           ; Less than requested
++               LDA DEQUEUE_L           ; Get # bytes to return
                 JSR STRSPA              ; Allocate BASIC string variable
                 LDX QHEAD               ; X = Source Index
                 LDY #$00                ; Y = Destination Index
@@ -185,16 +185,14 @@ DEQUEUE:
                 STA (DSCTMP+1),Y        ; Store a byte
                 INX
                 INY
-                CPY NEWL
+                CPY DEQUEUE_L
                 BNE -                   ; Loop until all bytes copied
                 STX QHEAD               ; Update QHEAD
-                CPX QTAIL
-                BEQ +                   ; Skip if no bytes remaining
-                LDA #QUEUE_SIGNAL
-                LDX TID
-                ORA SIGNAL0,X
-                STA SIGNAL0,X           ; Set Signal if more bytes remaining
-+				LDY NEWH
+				LDY TID
+				LDA SIGNAL0,Y
+				AND #~QUEUE_SIGNAL
+				STA SIGNAL0,Y
+				LDY NEWH
 				RTS
 
 

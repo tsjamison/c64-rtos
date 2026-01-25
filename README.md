@@ -25,8 +25,10 @@ The following RTOS BASIC fuctions are implemented:
 | SIGNAL     | USR(8),TASK,SIG_SET   | Signals a Waiting Task                    |
 | SLEEP      | USR(9),JIFFIES        | Sleeps current task for x Jiffies         |
 | WAITM      | USR(10)ADDR,AND[,EOR] | Get Task Priority.                        |
-| NQ:        | USR(11)STR,TASK       | eNQueue a string, notifying TASK          |
-| DQ:        | USR(12),LEN           | Yield and DeQueue a string up to LEN char |
+| NQ         | USR(11)STR,TASK       | eNQueue a string, notifying TASK          |
+| DQ         | USR(12),LEN           | Yield and DeQueue a string up to LEN char |
+| MAXTASKS   | USR(13)               | Maximum number of tasks                   |
+| STATE      | USR(14),TASK          | Returns Task State of TASK                |
 
 ### USR(0) - GET TASK ID
 Returns Task ID of the currently running process.
@@ -115,12 +117,43 @@ of whether its running, ready, or waiting.
 This function is considered "low level".  Its main purpose is to
 support multiple higher level functions like Sleep and WaitMem.
 
+TIMER_SIGNAL = $40  
+WAITM_SIGNAL = $20  
+QUEUE_SIGNAL = $10  
+
 Parameters:  
     task - the task to be signalled  
     signals - the signals to be sent  
 Returns: The task's signal set.
 
-### USR(9)
+### USR(9),JIFFIES - Sleep
+Puts the runnning task to sleep for so many JIFFIES (1/60th of a second), 60 JIFFIES for 1 second.
+
+Parameters:  
+    JIFFIES - 0-65535 JIFFIES  
+Returns:  bit-maks of signals that awoke the task
+
+### USR(10)ADDR,AND[,EOR] - WAIT MEMORY
+This function works identically to the WAIT command, but does so in a multitasking-friendly way. The task will sleep until the address matches the given AND and EOR bits.
+
+Parameters:  
+    ADDR  
+    AND  
+    EOR  
+Returns: Bitmask of the result
+
+### USR(11)STR,TASK - Enqueue STR, signalling TASK
+
+### USR(12),LEN - Dequeue a string of at most length LEN
+
+### USR(13) - Return Maximum number of tasks the system supports
+
+### USR(14),TASK - Return task statee of given TASK
+
+TS_INVALID = 0  
+TS_RUN     = 2  
+TS_READY   = 3  
+TS_WAIT    = 4  
 
 
 ## Notes

@@ -45,19 +45,22 @@ UM_TS.LOOP      LDY #$00
                 LDA TASK_STATE0,Y
                 CMP #TS_RUN
                 BEQ +
-                CMP #TS_READY
-                BEQ +
-;not runnable
+;not running
                 LDA #$FF
                 STA NTID
                 STA GROUP
+                LDA TASK_STATE0,Y
+                CMP #TS_READY
+                BEQ ++
+
+;not runnable
                 LDA #$00
                 STA MXPRI
                 BEQ UM_TS.NEXT  ;BRA
-;runnable
+;running
 +               LDA GRP0,Y
                 STA GROUP
-                LDA PRI0,Y
++               LDA PRI0,Y
                 BPL +           ;BRA
 ;loop
 -               LDA TASK_STATE0,Y

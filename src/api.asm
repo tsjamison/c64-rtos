@@ -51,10 +51,15 @@ GET_STATE       LDY TASK_STATE0,X
 ;USED  : -XY
 WAIT            LDY TID
                 STA WAIT0,Y
-                LDA #TS_WAIT
+                LDA WAIT0,Y
+                BEQ +
+                LDA #TS_WAIT        ;wait/sleep (can select lower priority)
+                STA TASK_STATE0,Y
+                BNE ++
++               LDA #TS_READY       ;YIELD (can't select lower priority)
                 STA TASK_STATE0,Y
                 ; Going to Sleep
-                JSR UM_TS_PROC
++               JSR UM_TS_PROC
                 ; Waking up from Sleep
                 LDY TID
                 LDA WAIT0,Y

@@ -1,4 +1,5 @@
 ; 64tass.exe -o ../release/rtos rtos.asm
+; ../../64tass/64tass.exe -o ../release/rtos -l rtos.txt rtos.asm
 
 USRADD  = $0311
 CINV    = $0314

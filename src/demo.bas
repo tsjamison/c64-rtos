@@ -22,9 +22,10 @@ rem
 
 
  1000 hx$="0123456789abcdef"
+ 1010 cl$="{blk}{wht}{red}{cyn}{pur}{grn}{blu}{yel}"
  1015 dim p%(15),g%(15)
  1020 p%(0)=15:g%(0)=15
- 1021 p%(1)=0:g%(1)=0
+ 1021 p%(1)=14:g%(1)=0
  1022 p%(2)=0:g%(2)=0
  1023 p%(3)=1:g%(3)=0
  1024 p%(4)=0:g%(4)=1
@@ -52,7 +53,9 @@ rem
  1060 x=0:y=0
  1070 bl%=16384
  1080 sl%=16400
- 1090 for i=0 to 16
+ 1085 pokebl%+0,0:pokesl%+0*2,60:pokesl%+0*2+1,0
+ 1086 pokebl%+1,0:pokesl%+1*2,44:pokesl%+1*2+1,1
+ 1090 for i=2 to 15
  1100 pokebl%+i,10
  1110 pokesl%+i*2,60
  1120 pokesl%+i*2+1,0
@@ -72,6 +75,7 @@ rem
 
  3000 print"{home}"
  3010 for i=0 to usr(13)-1
+ 3015 printmid$(cl$,i+1,1);
  3020 printmid$(hx$,i+1,1);
  3030 next
  3040 print:print"task status pr gp bsy sleep nq dq"
@@ -80,7 +84,7 @@ rem
  3070 print right$("         "+str$(p%(i)),9);
  3080 print right$("  "+str$(g%(i)),3);
  3090 print right$("   "+str$(peek(bl%+i)),4);
- 3100 print right$("     "+str$(peek(sl%+i*2)+peek(sl%+i*2+1)),6);
+ 3100 print right$("     "+str$(peek(sl%+i*2)+peek(sl%+i*2+1)*256),6);
  3110 print " nq dq"
  3120 next
  3130 dy%=0:dx%=0:gosub 3400

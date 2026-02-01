@@ -25,7 +25,7 @@ rem
  1010 cl$="{blk}{wht}{red}{cyn}{pur}{grn}{blu}{yel}"
  1015 dim p%(15),g%(15)
  1020 p%(0)=15:g%(0)=15
- 1021 p%(1)=14:g%(1)=0
+ 1021 p%(1)=14:g%(1)=14
  1022 p%(2)=0:g%(2)=0
  1023 p%(3)=1:g%(3)=0
  1024 p%(4)=0:g%(4)=1
@@ -56,7 +56,7 @@ rem
  1085 pokebl%+0,0:pokesl%+0*2,60:pokesl%+0*2+1,0
  1086 pokebl%+1,0:pokesl%+1*2,44:pokesl%+1*2+1,1
  1090 for i=2 to 15
- 1100 pokebl%+i,10
+ 1100 pokebl%+i,48+i
  1110 pokesl%+i*2,60
  1120 pokesl%+i*2+1,0
  1130 next

@@ -31,13 +31,13 @@ GET_PRI         LDY PRI0,X
 ;INPUT : A-Y
 ;OUTPUT: ---
 ;USED  : ---
-SET_GRP         STA GRP0,Y
+SET_COOP         STA COOP0,Y
                 RTS
 
 ;INPUT : -X-
 ;OUTPUT: --Y
 ;USED  : ---
-GET_GRP         LDY GRP0,X
+GET_COOP         LDY COOP0,X
                 RTS
 
 ;INPUT : -X-
@@ -58,6 +58,26 @@ WAIT            LDY TID
                 BNE ++
 +               LDA #TS_READY       ;YIELD (can't select lower priority)
                 STA TASK_STATE0,Y
+
+                ; Re-enable CO-OPTED tasks
++               LDA COOP0,Y
+-               INY
+                CPY MAX_TASKS
+                BNE +
+                LDY #$00
++               CPY TID
+                BEQ +
+                CMP COOP0,Y
+                BNE -
+                LDX TASK_STATE0,Y
+                CPX #TS_COOPTED
+                BNE -
+                TAX
+                LDA #TS_READY
+                STA TASK_STATE0,Y
+                TXA
+                JMP -
+
                 ; Going to Sleep
 +               JSR UM_TS_PROC
                 ; Waking up from Sleep

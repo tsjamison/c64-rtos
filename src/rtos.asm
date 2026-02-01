@@ -11,10 +11,13 @@ mxtasks = 16
 qsize   = 256
 
 TS_INVALID = 0
+TS_ADDED   = 1
 TS_RUN     = 2
 TS_READY   = 3
 TS_WAIT    = 4
+TS_EXCEPT  = 5
 TS_REMOVED = 6
+TS_COOPTED = 7
 
 TIMER_SIGNAL = $40
 WAITM_SIGNAL = $20
@@ -31,8 +34,8 @@ RTOS_ADDTASK    JMP addtask
 RTOS_ENDTASK    JMP END_TASK
 RTOS_SETPRI     JMP SET_PRI
 RTOS_GETPRI     JMP GET_PRI
-RTOS_SETGRP     JMP SET_GRP
-RTOS_GETGRP     JMP GET_GRP
+RTOS_SETCOOP    JMP SET_COOP
+RTOS_GETCOOP    JMP GET_COOP
 RTOS_WAIT       JMP WAIT
 RTOS_SIGNAL     JMP SIGNAL
 RTOS_SLEEP      JMP SLEEP
@@ -106,7 +109,7 @@ skip_install
                 DEY
 -               STA TASK_STATE0,Y ;Set Task State to TS_INVALID
                 STA PRI0,Y     ;CLEAR PRIORITY ARRAY
-                STA GRP0,Y     ;CLEAR GROUP ARRAY
+                STA COOP0,Y    ;CLEAR COOP ARRAY
                 STA WAIT0,Y    ;CLEAR WAIT ARRAY
                 STA SIGNAL0,Y  ;CLEAR SIGNAL ARRAY
                 STA SLEEP0,Y   ;CLEAR SLEEP ARRAY LO
@@ -290,7 +293,7 @@ MAX_TASKS       .BYTE ?
 SP0:            .fill mxtasks
 TASK_STATE0:    .fill mxtasks
 PRI0:           .fill mxtasks
-GRP0:           .fill mxtasks
+COOP0:          .fill mxtasks
 WAIT0:          .fill mxtasks
 SIGNAL0:        .fill mxtasks
 SLEEP0:         .fill mxtasks
@@ -303,7 +306,6 @@ WAITM0:         .fill mxtasks
 TID:            .BYTE ?
 NTID:           .BYTE ?
 MXPRI:          .BYTE ?
-GROUP:          .BYTE ?
 
 QHEAD:          .BYTE ?
 QTAIL:          .BYTE ?

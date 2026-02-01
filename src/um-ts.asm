@@ -26,53 +26,65 @@ UM_TS_PROC:	TSX
 UM_TS:
                 JSR FORBID
 
-UM_TS.LOOP      LDY #$00
--               LDA TASK_STATE0,Y
-                CMP #TS_WAIT
-                BNE +
-                LDA WAIT0,Y
-                AND SIGNAL0,Y
-                BEQ +
-                LDA #TS_READY
-                STA TASK_STATE0,Y 
-+               INY
-                CPY MAX_TASKS
-                BNE -
+UM_TS.LOOP
 
-; If running then set as runnable, but not others of same group
-; if not running, then goup can be any
-                LDY TID
-                LDA TASK_STATE0,Y
-                CMP #TS_RUN
-                BEQ +
-;not running
                 LDA #$FF
                 STA NTID
-                STA GROUP
-                LDA TASK_STATE0,Y
-                CMP #TS_READY
-                BEQ ++
-
-;not runnable
                 LDA #$00
                 STA MXPRI
-                BEQ UM_TS.NEXT  ;BRA
+; Check WAITing tasks to see if they received a
+; signal for what they were WAITing for.
+                LDY MAX_TASKS
+-               DEY
+                BMI +
+                LDA TASK_STATE0,Y
+                CMP #TS_WAIT
+                BNE -
+                LDA WAIT0,Y
+                AND SIGNAL0,Y
+                BEQ -
+                LDA #TS_READY
+                STA TASK_STATE0,Y 
+                BNE -
+
+; If running then set other READY tasks in same COOP to COOPTED
++               LDY TID
+                LDA TASK_STATE0,Y
+                CMP #TS_RUN
+                BNE UM_TS.NEXT
+
 ;running
-+               LDA GRP0,Y
-                STA GROUP
-+               LDA PRI0,Y
-                BPL +           ;BRA
+                STY NTID
+                LDA PRI0,y
+                STA MXPRI
+
+                LDA COOP0,Y
+-               INY
+                CPY MAX_TASKS
+                BNE +
+                LDY #$00
++               CPY TID
+                BEQ UM_TS.NEXT
+                CMP COOP0,Y
+                BNE -
+                LDX TASK_STATE0,Y
+                CPX #TS_READY
+                BNE -
+                TAX
+                LDA #TS_COOPTED
+                STA TASK_STATE0,Y
+                TXA
+                JMP -
+
 ;loop
 -               LDA TASK_STATE0,Y
                 CMP #TS_READY
                 BNE UM_TS.NEXT
-                LDA GRP0,Y
-                CMP GROUP
-                BEQ UM_TS.NEXT
                 LDA PRI0,Y
                 CMP MXPRI
-                BCC UM_TS.NEXT
+                BCC UM_TS.NEXT   ; Skip if PRI0,Y < MXPRI
 
+; PRI0,Y >= MXPRI
 ; Best candidate so far
 +               STY NTID
                 STA MXPRI
@@ -89,9 +101,10 @@ UM_TS.NEXT      DEY
                 LDA NTID
                 CMP #$FF
                 BNE +
-                
-                LDA $D011
-                AND #$EF
+
+; No task selected to run
+;                LDA $D011
+;                AND #$EF
 ;                STA $D011
                 JMP UM_TS.LOOP
 

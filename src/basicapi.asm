@@ -29,7 +29,7 @@ USRTBL		.word USR_GETTID-1   ;USR(0)
 			.word USR_PERMIT-1   ;USR(3)
 			.word USR_REMTASK-1  ;USR(4)[,TASK]
 			.word USR_SETPRI-1   ;USR(5),TASK,PRI
-			.word USR_SETGRP-1   ;USR(6),TASK,GRP
+			.word USR_SETCOOP-1  ;USR(6),TASK,COOP
 			.word USR_WAIT-1     ;USR(7),MASK
 			.word USR_SIGNAL-1   ;USR(8),TASK,SIG_SET
 			.word USR_SLEEP-1    ;USR(9),JIFFIES
@@ -152,17 +152,17 @@ USR_GETPRI:     JSR COMBYT
                 JSR GET_PRI  ; x = TID, y-> new Pri
                 JMP SNGFLT
 
-USR_SETGRP:     JSR COMBYT   ; TID
-                JSR GET_GRP
+USR_SETCOOP:    JSR COMBYT   ; TID
+                JSR GET_COOP
                 TYA
                 PHA
                 TXA
                 PHA
-                JSR COMBYT   ; GRP
+                JSR COMBYT   ; COOP
                 PLA
                 TAY
                 TXA
-                JSR SET_GRP  ; y = TID, A = New Group
+                JSR SET_COOP ; y = TID, A = New Co-op
                 PLA
                 TAY
                 JMP SNGFLT

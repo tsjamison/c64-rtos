@@ -78,7 +78,7 @@ rem
  3015 printmid$(cl$,i+1,1);
  3020 printmid$(hx$,i+1,1);
  3030 next
- 3040 print:print"task status pr gp bsy sleep nq dq"
+ 3040 print:print"task status pr cp bsy sleep nq dq"
  3050 for i=0 to usr(13)-1
  3060 print right$("   "+str$(i),4)+" "+st$(usr(14),i);
  3070 print right$("         "+str$(p%(i)),9);
@@ -148,6 +148,7 @@ rem  3030 if y=i and x=2 then print"{rvof}";
  4002 st$(2)=" run "
  4003 st$(3)="ready"
  4004 st$(4)="sleep"
+ 4007 st$(7)="co-op"
  4010 poke 1024+usr(0),(peek(1024+usr(0))+1) and 255
  4020 print"{home}{down}{down}"
  4030 for i=0 to usr(13)-1
@@ -159,8 +160,9 @@ rem  3030 if y=i and x=2 then print"{rvof}";
  5000 for i=0 to peek(bl%+t)
  5010 poke 1024+usr(0),i
  5020 next
- 5030 z=usr(9),peek(sl%+t*2)+peek(sl%+t*2+1)*256
- 5030 goto 5000
+ 5030 s=peek(sl%+t*2)+peek(sl%+t*2+1)*256
+ 5040 if s > 0 then z=usr(9),s
+ 5050 goto 5000
  9999 end
 
 

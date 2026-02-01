@@ -20,7 +20,7 @@ The following RTOS BASIC fuctions are implemented:
 | PERMIT     | USR(3)                | permit task rescheduling                         |
 | REMTASK    | USR(4)[,TASK]         | End Task                                         |
 | SETPRI     | USR(5),TASK,PRI       | Set Task Priority. High priority tasks prevent low priority tasks from running |
-| SETGRP     | USR(6),TASK,GRP       | Set Task Group. Tasks in same group are co-operative. Tasks in different groups are pre-emptive |
+| SETCOOP    | USR(6),TASK,COOP      | Set Task Co-op. Tasks in same co-op are co-operative. Tasks in different co-ops are pre-emptive |
 | WAIT       | USR(7),MASK           | Set Task to sleep, waiting for a signal in the mask to wake it up |
 | SIGNAL     | USR(8),TASK,SIG_SET   | Signals a Waiting Task                    |
 | SLEEP      | USR(9),JIFFIES        | Sleeps current task for x Jiffies         |
@@ -83,9 +83,9 @@ will be scheduled to run.
 Parameters: Task ID, Priority  
 Returns: Previous priority
 
-### USR(6),TASK,GROUP - Set Group
-Sets the group of the task given by the parameter.
-A task will never interrupt another task in the same group.
+### USR(6),TASK,COOP - Set Co-op
+Sets the co-op of the task given by the parameter.
+A task will never interrupt another task in the same co-op.
 
 ### USR(7),MASK - Wait
 This function will cause the current task to suspend waiting for
@@ -155,6 +155,9 @@ TS_RUN     = 2
 TS_READY   = 3  
 TS_WAIT    = 4  
 
+Parameters:  
+    JIFFIES - Number of Jiffies - 60 Jiffies per second  
+Returns: <none>
 
 ## Notes
 

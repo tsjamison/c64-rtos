@@ -149,6 +149,7 @@ rem  3030 if y=i and x=2 then print"{rvof}";
  4003 st$(3)="ready"
  4004 st$(4)="sleep"
  4007 st$(7)="co-op"
+ 4008 st$(8)="premt"
  4010 poke 1024+usr(0),(peek(1024+usr(0))+1) and 255
  4020 print"{home}{down}{down}"
  4030 for i=0 to usr(13)-1

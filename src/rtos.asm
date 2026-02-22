@@ -1,5 +1,6 @@
 ; 64tass.exe -o ../release/rtos rtos.asm
 ; ../../64tass/64tass.exe -o ../release/rtos -l rtos.txt rtos.asm
+;ll "c:\users\tsjamison\documents\c64\c64-rtos\src\rtos.txt"
 
 USRADD  = $0311
 CINV    = $0314
@@ -18,6 +19,7 @@ TS_WAIT    = 4
 TS_EXCEPT  = 5
 TS_REMOVED = 6
 TS_COOPTED = 7
+TS_PREEMPT = 8
 
 TIMER_SIGNAL = $40
 WAITM_SIGNAL = $20
@@ -319,6 +321,8 @@ FORK_FLAG:      .BYTE ?
 ENQUEUE_L       .BYTE ?
 ENQUEUE_T       .BYTE ?
 DEQUEUE_L       .BYTE ?
+UM_TS_COOP      .BYTE ?
+UM_TS_IDX       .BYTE ?
 
 RTSL:           .BYTE ?
 RTSH:           .BYTE ?

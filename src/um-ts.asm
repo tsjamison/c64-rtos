@@ -36,16 +36,38 @@ UM_TS.LOOP
 ; signal for what they were WAITing for.
                 LDY MAX_TASKS
 -               DEY
-                BMI +
+                BMI ++
                 LDA TASK_STATE0,Y
                 CMP #TS_WAIT
                 BNE -
                 LDA WAIT0,Y
                 AND SIGNAL0,Y
                 BEQ -
+; task either TS_READY or TS_COOPTED
+; scan looking for TS_PREEMPT with same COOP
+; if so, then this task is TS_COOPTED
+; if no TS_PREEMPT with same COOP found,
+; then task is TS_READY
+                LDA COOP0,Y
+                STA UM_TS_COOP
+                STY UM_TS_IDX
+                LDY MAX_TASKS
+-               DEY
+                BMI +
+                LDA TASK_STATE0,Y
+                CMP #TS_PREEMPT
+                BNE -
+                LDA COOP0,Y
+                CMP UM_TS_COOP
+                BNE -
+                LDY UM_TS_IDX
+                LDA #TS_COOPTED
+                STA TASK_STATE0,Y
+                BNE --   ; BRA
++               LDY UM_TS_IDX
                 LDA #TS_READY
                 STA TASK_STATE0,Y 
-                BNE -
+                BNE --   ; BRA
 
 ; If running then set other READY tasks in same COOP to COOPTED
 +               LDY TID
@@ -79,8 +101,10 @@ UM_TS.LOOP
 ;loop
 -               LDA TASK_STATE0,Y
                 CMP #TS_READY
+                BEQ +
+                CMP #TS_PREEMPT
                 BNE UM_TS.NEXT
-                LDA PRI0,Y
++               LDA PRI0,Y
                 CMP MXPRI
                 BCC UM_TS.NEXT   ; Skip if PRI0,Y < MXPRI
 
@@ -114,7 +138,7 @@ UM_TS.NEXT      DEY
 +               LDA TASK_STATE0,Y
                 CMP #TS_RUN
                 BNE +
-                LDA #TS_READY
+                LDA #TS_PREEMPT
                 STA TASK_STATE0,Y
 +               LDY NTID
                 LDA #TS_RUN

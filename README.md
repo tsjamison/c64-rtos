@@ -53,7 +53,7 @@ t=usr(1)
 ```
 This duplicates the current process, with the task number getting returned.
 This results in now two copies of the program getting executed at the same time.
-The original copy usr(1) returns 0. The newly created copy returns usr(1).
+The original copy usr(1) returns the calling task's ID. The newly created copy returns a newly allocated ID.
 
 ### USR(2) - FORBID
 Prevents other tasks from being scheduled to run by the dispatcher, until a matching Permit() is executed.
@@ -85,7 +85,7 @@ Returns: Previous priority
 
 ### USR(6),TASK,COOP - Set Co-op
 Sets the co-op of the task given by the parameter.
-A task will never interrupt another task in the same co-op.
+A task can not interrupt another task in the same co-op, but may interrupt tasks in other co-ops.
 
 ### USR(7),MASK - Wait
 This function will cause the current task to suspend waiting for
@@ -104,7 +104,7 @@ This function is considered "low level".  Its main purpose is to
 support multiple higher level functions like Sleep and WaitMem.
 
 Parameters: MASK  
-Returns: bit-maks of signals that awoke the task
+Returns: bit-mask of signals that awoke the task
 
 ### USR(8),TASK,SIG_SET - Signal
 This function signals a task with the given signals.  If the task
@@ -116,10 +116,14 @@ of whether its running, ready, or waiting.
 
 This function is considered "low level".  Its main purpose is to
 support multiple higher level functions like Sleep and WaitMem.
+7654 3210
 
-TIMER_SIGNAL = $40  
-WAITM_SIGNAL = $20  
-QUEUE_SIGNAL = $10  
+TIMER_SIGNAL = $40  (1 << 6)
+WAITM_SIGNAL = $20  (1 << 5)
+QUEUE_SIGNAL = $10  (1 << 4)
+
+Signal $80 (1 << 7) is reserved for future use by RTOS
+Theh 4 signals in lower nibble are available for application use.
 
 Parameters:  
     task - the task to be signalled  
@@ -144,20 +148,48 @@ Returns: Bitmask of the result
 
 ### USR(11)STR,TASK - Enqueue STR, signalling TASK
 
+Parameters:  
+    STR - String to put into global queue  
+    TASK - Task to signal that is waiting for Queue  
+Returns: Number bytes put into queue
+
+Example:
+```
+a=usr(11)"hello",0
+b$="world!"
+b=usr(11)b$,0
+```
+a will have 5, and b will have 6
+
 ### USR(12),LEN - Dequeue a string of at most length LEN
+
+Parameters:  
+    LEN - Maximum number of bytes to grab  
+Returns:  a string of up to LEN bytes.
+
+This function will wait if there are 0 bytes in the queue.
+Otherwise it will return up to LEN bytes immediately.
+
 
 ### USR(13) - Return Maximum number of tasks the system supports
 
-### USR(14),TASK - Return task statee of given TASK
+Example:
+```
+print usr(13)
+```
+
+### USR(14),TASK - Return task state of given TASK
 
 TS_INVALID = 0  
 TS_RUN     = 2  
 TS_READY   = 3  
 TS_WAIT    = 4  
+TS_COOPTED = 7  
+TS_PREEMPT = 9  
 
 Parameters:  
-    JIFFIES - Number of Jiffies - 60 Jiffies per second  
-Returns: <none>
+    TASK - Task ID to get task staate  
+Returns: task state
 
 ## Notes
 

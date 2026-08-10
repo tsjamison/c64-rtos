@@ -210,10 +210,10 @@ The border color reflects which current task is running.
 
 ```basic
 10 sys 49152
-20 z=usr(4),1,1:x=usr(6),1,1
+20 z=usr(5),1,1:x=usr(6),1,1
 30 t=usr(1)
 40 if t=0 then 40
-50 d=usr(5)56320,31,31-j
+50 d=usr(10)56320,31,31-j
 60 j=31-peek(56320) and 31
 70 printd,j
 80 goto 50

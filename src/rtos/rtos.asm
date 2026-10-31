@@ -11,6 +11,7 @@ MEMSIZ  = $37
 mxtasks = 16
 qsize   = 256
 
+; Task states
 TS_INVALID = 0
 TS_ADDED   = 1
 TS_RUN     = 2
@@ -21,6 +22,7 @@ TS_REMOVED = 6
 TS_COOPTED = 7
 TS_PREEMPT = 8
 
+; Signal masks
 TIMER_SIGNAL = $40
 WAITM_SIGNAL = $20
 QUEUE_SIGNAL = $10

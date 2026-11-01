@@ -11,11 +11,11 @@ This is a toolkit to add multi-tasking support to the Commodore 64. It extends B
 
 ## BASIC API
 
-The following RTOS BASIC fuctions are implemented:
+The following RTOS BASIC functions are implemented:
 | FUNCTION   | USR Command           | Description |
 | ---------- | --------------------- | ----------- |
 | GET_TID    | USR(0)                | Returns Task ID of currently running Task |
-| FORK       | USR(1)                | Creats a new Task based off of current Task with a copy of BASIC RAM [fork()](https://en.wikipedia.org/wiki/Fork_(system_call)) |
+| FORK       | USR(1)                | Creates a new Task based off of current Task with a copy of BASIC RAM [fork()](https://en.wikipedia.org/wiki/Fork_(system_call)) |
 | FORBID     | USR(2)                | forbid task rescheduling until a matching PERMIT |
 | PERMIT     | USR(3)                | permit task rescheduling                         |
 | REMTASK    | USR(4)[,TASK]         | End Task                                         |
@@ -24,7 +24,7 @@ The following RTOS BASIC fuctions are implemented:
 | WAIT       | USR(7),MASK           | Set Task to sleep, waiting for a signal in the mask to wake it up |
 | SIGNAL     | USR(8),TASK,SIG_SET   | Signals a Waiting Task                    |
 | SLEEP      | USR(9),JIFFIES        | Sleeps current task for x Jiffies         |
-| WAITM      | USR(10)ADDR,AND[,EOR] | Get Task Priority.                        |
+| WAITM      | USR(10)ADDR,AND[,EOR] | Multitasking-friendly WAIT: sleep until memory matches |
 | NQ         | USR(11)STR,TASK       | eNQueue a string, notifying TASK          |
 | DQ         | USR(12),LEN           | Yield and DeQueue a string up to LEN char |
 | MAXTASKS   | USR(13)               | Maximum number of tasks                   |
@@ -42,7 +42,7 @@ print usr(0)
 ```
 
 ### USR(1) - FORK
-Creats a new Task based off of current Task with a copy of BASIC RAM [fork()](https://en.wikipedia.org/wiki/Fork_(system_call))
+Creates a new Task based off of current Task with a copy of BASIC RAM [fork()](https://en.wikipedia.org/wiki/Fork_(system_call))
 
 Parameters: <None>  
 Returns: Task ID
@@ -97,7 +97,7 @@ If a signal occurred prior to calling Wait(), the wait condition will
 be immediately satisfied, and the task will continue to run without
 delay.
 
-The function takes a bit mask as an argument, specifying whihch of the task's 8 available signals it is interested in.
+The function takes a bit mask as an argument, specifying which of the task's 8 available signals it is interested in.
 The task resumes execution when any of the specified signals are sent to it by another task, an interrupt, or an I/O event. The Wait call returns a mask indicating which signals were active when the task awoke, allowing the program to determine the cause of the event.
 
 This function is considered "low level".  Its main purpose is to
@@ -123,19 +123,19 @@ WAITM_SIGNAL = $20  (1 << 5)
 QUEUE_SIGNAL = $10  (1 << 4)
 
 Signal $80 (1 << 7) is reserved for future use by RTOS
-Theh 4 signals in lower nibble are available for application use.
+The 4 signals in the lower nibble are available for application use.
 
 Parameters:  
     task - the task to be signalled  
     signals - the signals to be sent  
-Returns: The task's signal set.
+Returns: The task's signal set after the signal is posted.
 
 ### USR(9),JIFFIES - Sleep
-Puts the runnning task to sleep for so many JIFFIES (1/60th of a second), 60 JIFFIES for 1 second.
+Puts the running task to sleep for so many JIFFIES (1/60th of a second), 60 JIFFIES for 1 second.
 
 Parameters:  
     JIFFIES - 0-65535 JIFFIES  
-Returns:  bit-maks of signals that awoke the task
+Returns:  bit-mask of signals that awoke the task
 
 ### USR(10)ADDR,AND[,EOR] - WAIT MEMORY
 This function works identically to the WAIT command, but does so in a multitasking-friendly way. The task will sleep until the address matches the given AND and EOR bits.
@@ -151,7 +151,8 @@ Returns: Bitmask of the result
 Parameters:  
     STR - String to put into global queue  
     TASK - Task to signal that is waiting for Queue  
-Returns: Number bytes put into queue
+Returns: Number of bytes put into queue. The global queue holds up to 255 bytes; if it fills up, only the bytes that fit are enqueued.
+An empty string enqueues nothing, returns 0 and does not signal TASK.
 
 Example:
 ```
@@ -169,6 +170,8 @@ Returns:  a string of up to LEN bytes.
 
 This function will wait if there are 0 bytes in the queue.
 Otherwise it will return up to LEN bytes immediately.
+If several tasks are waiting on the queue, a task that wakes to find it already emptied goes back to waiting.
+LEN of 0 returns an empty string immediately, without waiting.
 
 
 ### USR(13) - Return Maximum number of tasks the system supports
@@ -185,20 +188,29 @@ TS_RUN     = 2
 TS_READY   = 3  
 TS_WAIT    = 4  
 TS_COOPTED = 7  
-TS_PREEMPT = 9  
+TS_PREEMPT = 8  
+
+TS_ADDED (1), TS_EXCEPT (5) and TS_REMOVED (6) are defined in the source but not currently used.
 
 Parameters:  
-    TASK - Task ID to get task staate  
+    TASK - Task ID to get task state  
 Returns: task state
 
 ## Notes
 
 There is no error-handling. No parameter checking for valid range.
 Not every possible situation has been tested.
-Must have an REU enabled with at least 1MB RAM (64KB per Task * 16 Tasks).
+Requires an REU. Each task uses one 64KB REU bank, up to 16 tasks: a 1MB or larger REU gives 16 tasks, 512KB gives 8, 256KB gives 4 and 128KB gives 2.
 
-I/O isn't protected. Input goes to any runing task.
+I/O isn't protected. Input goes to any running task.
 Each task keeps its own output state.
+
+Each task has its own copy of zero page, the stack, $0200-$03FF, its variables and its strings. The BASIC program text, screen RAM and memory above $A000 are shared. This has some side effects:
+
+* Don't edit or LOAD the BASIC program while other tasks are running. Program text is shared but each task has its own variable pointers, so changing the program corrupts every other task's variables.
+* TI and TI$ are per task. The jiffy clock lives in zero page, so a task's clock only advances while that task is running.
+* The keyboard buffer is per task, so keystrokes can be lost or go to whichever task happens to be running.
+* WAITM reads its address every jiffy. Avoid registers that change when read, such as the CIA interrupt register at $DC0D.
 
 The border color reflects which current task is running.
 

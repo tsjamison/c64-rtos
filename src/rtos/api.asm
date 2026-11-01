@@ -82,31 +82,37 @@ WAIT            LDY TID
 +               JSR UM_TS_PROC
                 ; Waking up from Sleep
                 LDY TID
+                SEI                 ; mask IRQs for the read-modify-write
                 LDA WAIT0,Y
                 AND SIGNAL0,Y
-                PHA
+                TAX                 ; X = signals that woke us
                 LDA WAIT0,Y
                 EOR #$FF
                 AND SIGNAL0,Y
                 STA SIGNAL0,Y
+                CLI
                 LDA #$00
                 STA WAIT0,Y
-                PLA
+                TXA
                 RTS
 
 ;INPUT : A-Y
 ;OUTPUT: A--
 ;USED  : ---
-SIGNAL 			ORA SIGNAL0,Y
-				STA SIGNAL0,Y
-				LDA WAIT0,Y
-				AND SIGNAL0,Y
-				BEQ +
-                ; Going to Sleep
-                JSR UM_TS_PROC
-                ; Waking up from Sleep
-				LDA SIGNAL0,Y
-+				RTS
+SIGNAL          SEI                 ; mask IRQs for the read-modify-write
+                ORA SIGNAL0,Y
+                STA SIGNAL0,Y
+                LDA WAIT0,Y
+                AND SIGNAL0,Y
+                CLI
+                BEQ +
+                TYA                 ; UM_TS_PROC does not preserve Y,
+                PHA                 ; so keep the task ID on our stack
+                JSR UM_TS_PROC      ; reschedule
+                PLA
+                TAY
++               LDA SIGNAL0,Y       ; return the task's signal set
+                RTS
 
 ;INPUT : A-Y
 ;OUTPUT: A--
@@ -160,6 +166,8 @@ ENQUEUE:
 
                 LDX QTAIL
                 LDY #$00
+                CPY ENQUEUE_L
+                BEQ ENQ_EMPTY       ; nothing to enqueue
 -               LDA (INDEX1),Y
                 STA QDATA0,X
                 INX
@@ -174,10 +182,12 @@ ENQUEUE:
 +               STX QTAIL
 
                 LDX ENQUEUE_T
+                SEI
                 LDA #QUEUE_SIGNAL
                 ORA SIGNAL0,X
                 STA SIGNAL0,X
-                RTS
+                CLI
+ENQ_EMPTY       RTS
 
 ;Parameter: A = Length requested
 ;Return Y = Length received

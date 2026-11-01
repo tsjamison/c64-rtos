@@ -264,7 +264,10 @@ USR_NQ:         JSR FRMEVL
                 PLA
                 STA INDEX1+1
 
+                JSR FORBID
                 LDX QTAIL
+                LDY NEWL
+                BEQ NQ_EMPTY        ; empty string: nothing to enqueue
                 LDY #$00
 -               LDA (INDEX1),Y
                 STA QDATA0,X
@@ -284,7 +287,8 @@ USR_NQ:         JSR FRMEVL
                 ORA SIGNAL0,X
                 STA SIGNAL0,X
 
-                JMP SNGFLT
+ NQ_EMPTY       JSR PERMIT
+                JMP SNGFLT          ; Y = bytes enqueued
 
 
 ; Don't wait if data is available

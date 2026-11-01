@@ -182,10 +182,12 @@ INT:
 ; @todo Update Timer / Input Devices
 ; @todo Update Quantum
 
+; Save POKER in INT-only scratch bytes. RTSL/RTSH hold the
+; XFER_BASIC_XY return address and must not be touched here.
                 LDA POKER+0
-                STA RTSL
+                STA INT_PL
                 LDA POKER+1
-                STA RTSH
+                STA INT_PH
 
 
 ; If SLEEP counter is 0, then skip
@@ -240,9 +242,9 @@ INT:
 +               DEX
                 BPL -
 
-                LDA RTSL
+                LDA INT_PL
                 STA POKER+0
-                LDA RTSH
+                LDA INT_PH
                 STA POKER+1
 
                 LDA TS_ENABLE  ; 0 MEANS TASK SWITCH ENABLED
@@ -302,7 +304,7 @@ WAIT0:          .fill mxtasks
 SIGNAL0:        .fill mxtasks
 SLEEP0:         .fill mxtasks
 SLEEP1:         .fill mxtasks
-POKER0:         .fill mxtasks
+POKER0:         .fill mxtasks*2   ; 16-bit address per task
 EORMSK0:        .fill mxtasks
 ANDMSK0:        .fill mxtasks
 WAITM0:         .fill mxtasks
@@ -328,6 +330,8 @@ UM_TS_IDX       .BYTE ?
 
 RTSL:           .BYTE ?
 RTSH:           .BYTE ?
+INT_PL:         .BYTE ?   ; INT scratch: saved POKER lo
+INT_PH:         .BYTE ?   ; INT scratch: saved POKER hi
 
 QDATA0:         .fill qsize
 TEMP:           .fill 257

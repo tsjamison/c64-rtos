@@ -1,14 +1,3 @@
-;../release/demo ==0801==
-
-rem *************
-rem * rtos demo *
-rem *************
-rem
-rem task0: ui control
-rem task1: ui update
-rem task2-n: basic busyloop
-rem
-
    10 if z=0 then z=1:load"rtos",8,1
    20 print"{clr}{down}{down}{down}{down}{down}{down}{down}{down}{down}{down}{down}{down}{down}{down}{down}{down}{down}{down}{down}"
    30 sys 49152
@@ -19,7 +8,7 @@ rem
    80 if t=0 then t=usr(1)
    90 next
   100 on t+1 goto 3000,4000,5000,5000,5000,5000,5000,5000
-
+  110 on t-7 goto 5000,5000,5000,5000,5000,5000,5000,5000
 
  1000 hx$="0123456789abcdef"
  1010 cl$="{blk}{wht}{red}{cyn}{pur}{grn}{blu}{yel}"

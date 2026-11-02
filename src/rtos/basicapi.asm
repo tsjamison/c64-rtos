@@ -287,7 +287,7 @@ USR_NQ:         JSR FRMEVL
                 ORA SIGNAL0,X
                 STA SIGNAL0,X
 
- NQ_EMPTY       JSR PERMIT
+NQ_EMPTY        JSR PERMIT
                 JMP SNGFLT          ; Y = bytes enqueued
 
 

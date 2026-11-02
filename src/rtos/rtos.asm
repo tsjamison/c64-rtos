@@ -1,5 +1,5 @@
 ; 64tass.exe -o ../release/rtos rtos.asm
-; ../../64tass/64tass.exe -o ../release/rtos -l rtos.txt rtos.asm
+; ../../../64tass/64tass.exe -o ../../release/rtos -l rtos.txt rtos.asm
 ;ll "c:\users\tsjamison\documents\c64\c64-rtos\src\rtos.txt"
 
 USRADD  = $0311

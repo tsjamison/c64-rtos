@@ -1,0 +1,22 @@
+{
+    "name": "c64-rtos",
+    "description": "Project c64-rtos",
+    "toolkit": "basic",
+    "sources": [
+        "src/rtos/api.asm",
+        "src/rtos/basic.asm",
+        "src/samples/demo.bas",
+        "src/samples/music.bas",
+        "src/sprite.bas",
+        "src/rtos/basicapi.asm",
+        "src/rtos/reu.asm",
+        "src/rtos/rtos.asm",
+        "src/test.asm",
+        "src/rtos/um-ts.asm"
+    ],
+    "build": "debug",
+    "definitions": [],
+    "includes": [],
+    "args": [],
+    "compiler": ""
+}

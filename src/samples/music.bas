@@ -22,8 +22,8 @@
 922 p=usr(5),2,2:rem task2 priority=2
 923 p=usr(5),3,1:rem task3 priority=1
 931 c=usr(6),1,1:rem task1 coop=1
-932 c=usr(6),2,2:rem task2 coop=0
-933 c=usr(6),3,3:rem task3 coop=0
+932 c=usr(6),2,2:rem task2 coop=2
+933 c=usr(6),3,3:rem task3 coop=3
 941 t=usr(1):ift=1then1000
 942 t=usr(1):ift=2then2000
 943 t=usr(1):ift=3then3000

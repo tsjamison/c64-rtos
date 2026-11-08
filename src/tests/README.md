@@ -4,7 +4,7 @@ BASIC programs that exercise `USR(0)`–`USR(14)`. Each program prints one `pass
 
 ## Running
 
-The built programs are in `release/` next to `rtos`: `test1` to `test7` and `knownbugs`. Each one starts with `load"rtos",8,1`, so `rtos` must be on device 8, the same way `demo` works.
+The built programs are in `release/` next to `rtos`: `test1` to `test9` and `knownbugs`. Each one starts with `load"rtos",8,1`, so `rtos` must be on device 8, the same way `demo` works.
 
 ```
 load"test1",8
@@ -32,15 +32,30 @@ python3 src/tests/bas2prg.py src/tests/test1.bas release/test1
 | `test5` | `USR(10)` | Any bit set, AND mask, EOR mask. Part 2 runs WAITM in task 2 and task 9 at once (the old `POKER0` overflow) |
 | `test6` | `USR(11)`, `USR(12)` between tasks | Consumer waiting on an empty queue, partial reads, two producers whose writes must arrive whole |
 | `test7` | `USR(2)`, `USR(3)`, `USR(5)`, `USR(6)` | A higher priority starving lower ones, equal priority in separate co-ops sharing time, one co-op running one task, the co-opted state, FORBID stopping pre-emption |
-| `knownbugs` | Open issues 1–4 from the analysis doc | A menu; each choice reproduces one issue and prints `done` or `intact` once it's fixed |
+| `test8` | Scheduler and co-op owners | A lone task waking from a sleep and a yield, and showing running (2) afterwards; a co-op mate not cutting in after a lone yield; a busy owner blocking its mate (7); a pre-empted owner showing 8; ending or moving the owner freeing the co-op |
+| `test9` | Open-issue checks | The FORBID count leaking into another task across a wait; a reused slot inheriting the old task's timer, signals and priority; a queue signal with an empty queue; two waiting `USR(12)` calls keeping their own lengths; `USR(12),0` overwriting strings |
+| `knownbugs` | Issues a test can't check safely | A menu: FORK with no free slot, `USR(200)`, a task ID past the arrays, a co-op over 15, idle screen blanking. Each choice says what fixed and open look like |
 
-`knownbugs` choices 1, 3 and 4 hang the machine while their issue is open. Reset after each.
+Most `knownbugs` choices hang or crash the machine while their issue is open. Reset after each.
+
+### Expected failures with the Nov 8 code
+
+These checks target open issues in the analysis doc, so they should fail until the issue is fixed:
+
+| Program | Failing checks | Open issue |
+| --- | --- | --- |
+| `test8` | "re-picked after sleep/yield: running (2)", "mate co-opted (7) after lone yield", "mate waits until task 0 waits" | 1: a re-picked task stays READY without its co-op |
+| `test9` | "usr(2) count doesn't leak to others" | 5: FORBID carries across a wait |
+| `test9` | "new task doesn't get old priority", "no stale timer or signal wakes it" | 4: stale settings in a reused slot |
+| `test9` | "woken on empty queue, waits again", "then gets hi", "first waiter gets all 10 bytes", "second waiter gets its xy", "usr(12),0 leaves strings alone" | 2: `USR(12)` overruns and shares `DEQUEUE_L` |
+
+Run `test9` last in a session: while `USR(12),0` still overruns, its final check can corrupt strings.
 
 ## How the tests work
 
 - **Shared mailbox.** Tasks report results by poking `$CF00–$CF3F` (`mb`), which is above the RTOS and is not swapped per task. The harness fills it with 255 at the start, so 255 means "not reported yet".
-- **Keeper task.** Tests 2–7 start a busy task (`gosub 9100`) so a sleeping task always has another task to switch to. Without it, open issue 1 would hang any test that sleeps.
-- **Predictable children.** `gosub 9600` finds the slot the next `USR(1)` will use, so the parent knows the child's ID, and gives that slot its own co-op and priority 0. Children are therefore pre-emptive and don't start with stale settings from an earlier task (open issues 3 and 5).
+- **Keeper task.** Most tests start a busy task (`gosub 9100`) so a sleeping task always has another task to switch to. Parts of tests 8 and 9 run without it on purpose: test 8 checks a task running alone, and in test 9 a busy task would hog the CPU while FORBID leaks.
+- **Predictable children.** `gosub 9600` finds the slot the next `USR(1)` will use, so the parent knows the child's ID, and gives that slot its own co-op and priority 0. Children are therefore pre-emptive and don't start with stale settings from an earlier task (open issue 4). `gosub 9650` finds the slot without changing it; test 9 uses it to check what a reused slot inherits.
 - **Timeouts.** Waits on a mailbox byte (`gosub 9400`) or a task state (`gosub 9500`) give up after about 5 seconds, so a broken call shows up as a `fail` and not a hang.
 - **Harness copies.** Lines 8999 onwards are the same in every program. `harness.bas` is the master copy; paste changes into each test.
 

@@ -55,9 +55,11 @@
 9540 q=usr(9),1:goto 9520
 9600 rem nx = slot the next fork will use. give it its own
 9601 rem co-op and priority 0 so new tasks are pre-emptive
-9610 nx=0:for i=1 to mt-1:s=usr(14),i:if s=0 and nx=0 then nx=i
-9620 next:if nx=0 then print"no free task slot":end
+9610 gosub 9650:if nx=0 then print"no free task slot":end
 9630 q=usr(6),nx,nx:q=usr(5),nx,0:return
+9650 rem nx = slot the next fork will use, settings untouched
+9660 nx=0:for i=1 to mt-1:s=usr(14),i:if s=0 and nx=0 then nx=i
+9670 next:return
 9700 rem tt = tod clock in tenths of a second
 9710 h=peek(56331):m=peek(56330):s1=peek(56329):t1=peek(56328)
 9720 tt=(int(m/16)*10+(m and 15))*600+(int(s1/16)*10+(s1 and 15))*10

@@ -1,34 +1,35 @@
-1 rem rtos known issues: each choice
-2 rem reproduces one open issue from
-3 rem the analysis doc. 1, 3 and 4 hang
-4 rem the c64 while the issue is open.
+1 rem rtos known issues: each choice shows
+2 rem one issue that can't be checked safely
+3 rem by a test. most hang or crash the c64
+4 rem while the issue is open: reset after.
 10 if z=0 then z=1:load"rtos",8,1
 20 sys 49152
 30 gosub 9900:print
 40 print"known issues"
-50 print" 1 lone task never wakes from sleep"
-60 print" 2 usr(12),0 overwrites strings"
-70 print" 3 usr(4) strands a co-op mate"
-80 print" 4 fork with no free slot"
-90 input"which";k:print:on k goto 1000,2000,3000,4000:end
-1000 print"sleeping 1s with no other task."
-1010 print"hang = issue 1 still open."
-1020 q=usr(9),60:print"done: issue 1 is fixed":end
-2000 a$="sentinel"+"":q=usr(11)"x",0:b$=usr(12),0
-2010 if a$="sentinel" then print"a$ intact: issue 2 is fixed":end
-2020 print"a$ overwritten: issue 2 still open":end
-3000 print"parent sleeps while a child in its"
-3010 print"co-op runs, then the child ends."
-3020 print"hang = issue 3 still open."
-3030 gosub 9600:q=usr(6),nx,0:t=usr(1):if usr(0)<>0 then 3100
-3040 q=usr(9),30:print"done: issue 3 is fixed":end
-3100 for k=1 to 2000:next:q=usr(4)
-4000 print"forking until the slots run out."
-4010 print"dead keyboard after the error"
-4020 print"= issue 4 still open."
-4030 for k=1 to mt:t=usr(1):if usr(0)<>0 then 4100
-4040 print"forked";k:next
-4100 r=usr(7),128:goto 4100
+50 print" 1 fork with no free slot"
+60 print" 2 usr(200): bad usr number"
+70 print" 3 usr(8),200,1: bad task id"
+80 print" 4 usr(6),0,16: bad co-op (fixed)"
+90 print" 5 idle screen blanking"
+95 input"which";k:print:on k goto 1000,2000,3000,4000,5000:end
+1000 print"forking until the slots run out."
+1010 print"dead keyboard after the error"
+1020 print"= still open."
+1030 for k=1 to mt:t=usr(1):if usr(0)<>0 then 1100
+1040 print"forked";k:next
+1100 r=usr(7),128:goto 1100
+2000 print"fixed: ?illegal quantity error."
+2010 print"open: crash, hang or garbage."
+2020 q=usr(200):print"no error: still open":end
+3000 print"fixed: ?illegal quantity error."
+3010 print"open: prints no error (and has"
+3020 print"written past the rtos arrays)."
+3030 q=usr(8),200,1:print"no error: still open":end
+4000 print"expect ?illegal quantity error."
+4010 q=usr(6),0,16:print"no error: check failed":end
+5000 print"task 0 sleeps 3s with no other task."
+5010 print"screen goes blank = still open."
+5020 q=usr(9),180:print"done":end
 8999 rem ---- shared test harness ----
 9000 if ok then ps=ps+1:print"pass ";n$:return
 9010 fl=fl+1:print"{rvon}fail{rvof} ";n$:return
@@ -52,9 +53,11 @@
 9540 q=usr(9),1:goto 9520
 9600 rem nx = slot the next fork will use. give it its own
 9601 rem co-op and priority 0 so new tasks are pre-emptive
-9610 nx=0:for i=1 to mt-1:s=usr(14),i:if s=0 and nx=0 then nx=i
-9620 next:if nx=0 then print"no free task slot":end
+9610 gosub 9650:if nx=0 then print"no free task slot":end
 9630 q=usr(6),nx,nx:q=usr(5),nx,0:return
+9650 rem nx = slot the next fork will use, settings untouched
+9660 nx=0:for i=1 to mt-1:s=usr(14),i:if s=0 and nx=0 then nx=i
+9670 next:return
 9700 rem tt = tod clock in tenths of a second
 9710 h=peek(56331):m=peek(56330):s1=peek(56329):t1=peek(56328)
 9720 tt=(int(m/16)*10+(m and 15))*600+(int(s1/16)*10+(s1 and 15))*10

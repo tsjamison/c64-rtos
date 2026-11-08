@@ -9,6 +9,7 @@ STREND  = $31
 FRETOP  = $33
 MEMSIZ  = $37
 mxtasks = 16
+mxcoops = 16    ; co-ops 0-15, one owner byte each
 qsize   = 256
 
 ; Task states
@@ -19,8 +20,8 @@ TS_READY   = 3
 TS_WAIT    = 4
 TS_EXCEPT  = 5
 TS_REMOVED = 6
-TS_COOPTED = 7
-TS_PREEMPT = 8
+TS_COOPTED = 7   ; not stored: GET_STATE works these two out
+TS_PREEMPT = 8   ; from COOP_OWNER for USR(14)
 
 ; Signal masks
 TIMER_SIGNAL = $40
@@ -122,6 +123,15 @@ skip_install
                 BPL -
                 LDA #TS_RUN
                 STA TASK_STATE0
+
+; All co-ops free, except co-op 0, held by running task 0
+                LDX #mxcoops-1
+                LDA #$FF
+-               STA COOP_OWNER,X
+                DEX
+                BPL -
+                LDA #$00
+                STA COOP_OWNER
 
 ; Initialize USR() pointer
                 LDA #<USR_HANDLER
@@ -325,8 +335,7 @@ FORK_FLAG:      .BYTE ?
 ENQUEUE_L       .BYTE ?
 ENQUEUE_T       .BYTE ?
 DEQUEUE_L       .BYTE ?
-UM_TS_COOP      .BYTE ?
-UM_TS_IDX       .BYTE ?
+COOP_OWNER:     .fill mxcoops ; task holding each co-op, $FF = free
 
 RTSL:           .BYTE ?
 RTSH:           .BYTE ?

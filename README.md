@@ -87,6 +87,13 @@ Returns: Previous priority
 Sets the co-op of the task given by the parameter.
 A task can not interrupt another task in the same co-op, but may interrupt tasks in other co-ops.
 
+Co-ops are numbered 0-15; any other value gives ?ILLEGAL QUANTITY ERROR. Every task starts in co-op 0, so tasks are cooperative until they are put in different co-ops.
+
+A co-op is held by the task in it that last ran, until that task waits, yields or ends. While it is held, the other tasks in that co-op can't run, even if the holder is pre-empted by a task in another co-op. Moving a task to another co-op releases the old one.
+
+Parameters: Task ID, Co-op (0-15)  
+Returns: Previous co-op
+
 ### USR(7),MASK - Wait
 This function will cause the current task to suspend waiting for
 one or more signals.  When one or more of the specified signals
@@ -189,6 +196,8 @@ TS_READY   = 3
 TS_WAIT    = 4  
 TS_COOPTED = 7  
 TS_PREEMPT = 8  
+
+TS_COOPTED means the task is ready but another task holds its co-op. TS_PREEMPT means the task holds its co-op but was pre-empted by a task in another co-op.
 
 TS_ADDED (1), TS_EXCEPT (5) and TS_REMOVED (6) are defined in the source but not currently used.
 

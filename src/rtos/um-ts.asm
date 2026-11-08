@@ -33,84 +33,48 @@ UM_TS.LOOP
                 LDA #$00
                 STA MXPRI
 ; Check WAITing tasks to see if they received a
-; signal for what they were WAITing for.
+; signal for what they were WAITing for. A woken task is
+; READY; COOP_OK decides below whether its co-op lets it run.
                 LDY MAX_TASKS
 -               DEY
-                BMI ++
+                BMI +
                 LDA TASK_STATE0,Y
                 CMP #TS_WAIT
                 BNE -
                 LDA WAIT0,Y
                 AND SIGNAL0,Y
                 BEQ -
-; task either TS_READY or TS_COOPTED
-; scan looking for TS_PREEMPT with same COOP
-; if so, then this task is TS_COOPTED
-; if no TS_PREEMPT with same COOP found,
-; then task is TS_READY
-                LDA COOP0,Y
-                STA UM_TS_COOP
-                STY UM_TS_IDX
-                LDY MAX_TASKS
--               DEY
-                BMI +
-                LDA TASK_STATE0,Y
-                CMP #TS_PREEMPT
-                BNE -
-                LDA COOP0,Y
-                CMP UM_TS_COOP
-                BNE -
-                LDY UM_TS_IDX
-                LDA #TS_COOPTED
-                STA TASK_STATE0,Y
-                BNE --   ; BRA
-+               LDY UM_TS_IDX
                 LDA #TS_READY
-                STA TASK_STATE0,Y 
-                BNE --   ; BRA
+                STA TASK_STATE0,Y
+                BNE -   ; BRA
 
-; If running then set other READY tasks in same COOP to COOPTED
+; If the current task is running and its co-op still lets it
+; run, it is the candidate to beat
 +               LDY TID
                 LDA TASK_STATE0,Y
                 CMP #TS_RUN
                 BNE UM_TS.NEXT
-
-;running
+                JSR COOP_OK
+                BCS UM_TS.NEXT   ; moved into a co-op another task holds
                 STY NTID
-                LDA PRI0,y
+                LDA PRI0,Y
                 STA MXPRI
+                JMP UM_TS.NEXT
 
-                LDA COOP0,Y
--               INY
-                CPY MAX_TASKS
-                BNE +
-                LDY #$00
-+               CPY TID
-                BEQ UM_TS.NEXT
-                CMP COOP0,Y
-                BNE -
-                LDX TASK_STATE0,Y
-                CPX #TS_READY
-                BNE -
-                TAX
-                LDA #TS_COOPTED
-                STA TASK_STATE0,Y
-                TXA
-                JMP -
-
-;loop
+;loop: highest-priority READY task that its co-op allows
 -               LDA TASK_STATE0,Y
                 CMP #TS_READY
-                BEQ +
-                CMP #TS_PREEMPT
                 BNE UM_TS.NEXT
-+               LDA PRI0,Y
+                LDA PRI0,Y
                 CMP MXPRI
                 BCC UM_TS.NEXT   ; Skip if PRI0,Y < MXPRI
+                JSR COOP_OK
+                BCS UM_TS.NEXT   ; another task holds its co-op
 
 ; PRI0,Y >= MXPRI
 ; Best candidate so far
-+               STY NTID
+                STY NTID
+                LDA PRI0,Y
                 STA MXPRI
 
 UM_TS.NEXT      DEY
@@ -134,15 +98,19 @@ UM_TS.NEXT      DEY
 
 ;New Task is different from current Task
 ;Need to Task Swap
-;Update Task State for Running Task and New Task
+;Update Task State for Running Task and New Task.
+;A pre-empted task goes back to READY but keeps its co-op.
 +               LDA TASK_STATE0,Y
                 CMP #TS_RUN
                 BNE +
-                LDA #TS_PREEMPT
+                LDA #TS_READY
                 STA TASK_STATE0,Y
 +               LDY NTID
                 LDA #TS_RUN
                 STA TASK_STATE0,Y
+                LDX COOP0,Y      ; new task takes its co-op
+                TYA
+                STA COOP_OWNER,X
 
 ;DO TASK SWAP
                 TSX
@@ -188,3 +156,30 @@ TS_SWAP_END     LDA $D011
                 PLA
                 RTI
 
+; Can task Y run as far as its co-op is concerned?
+; Carry clear = yes: the co-op is free, or Y already holds it.
+;INPUT : --Y
+;OUTPUT: C
+;USED  : AX-
+COOP_OK         LDX COOP0,Y
+                LDA COOP_OWNER,X
+                BMI +            ; $FF: co-op is free
+                TYA
+                CMP COOP_OWNER,X
+                BNE ++           ; another task holds it
++               CLC
+                RTS
++               SEC
+                RTS
+
+; Task Y gives up its co-op, if it holds it.
+;INPUT : --Y
+;OUTPUT: ---
+;USED  : AX-
+COOP_RELEASE    LDX COOP0,Y
+                TYA
+                CMP COOP_OWNER,X
+                BNE +
+                LDA #$FF
+                STA COOP_OWNER,X
++               RTS

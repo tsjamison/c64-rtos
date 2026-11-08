@@ -28,10 +28,24 @@ SET_PRI         STA PRI0,Y
 GET_PRI         LDY PRI0,X
                 RTS
 
-;INPUT : A-Y
+;INPUT : A-Y   A = co-op (0-15), Y = task
 ;OUTPUT: ---
-;USED  : ---
-SET_COOP         STA COOP0,Y
+;USED  : AX-
+SET_COOP        AND #mxcoops-1
+                SEI
+                PHA
+                JSR COOP_RELEASE    ; leave the old co-op
+                PLA
+                STA COOP0,Y
+                LDA TASK_STATE0,Y   ; a running task takes its new co-op
+                CMP #TS_RUN         ; if it is free. If another task holds
+                BNE +               ; it, the scheduler switches this one out
+                LDX COOP0,Y
+                LDA COOP_OWNER,X
+                BPL +
+                TYA
+                STA COOP_OWNER,X
++               CLI
                 RTS
 
 ;INPUT : -X-
@@ -40,17 +54,34 @@ SET_COOP         STA COOP0,Y
 GET_COOP         LDY COOP0,X
                 RTS
 
+; TS_COOPTED and TS_PREEMPT are not stored. A READY task reports
+; TS_PREEMPT if it holds its co-op (it was pre-empted while
+; running) or TS_COOPTED if another task holds it.
 ;INPUT : -X-
 ;OUTPUT: --Y
-;USED  : ---
+;USED  : A--
 GET_STATE       LDY TASK_STATE0,X
+                CPY #TS_READY
+                BNE +++
+                LDY COOP0,X
+                LDA COOP_OWNER,Y
+                BMI ++           ; co-op free: plain READY
+                TXA
+                CMP COOP_OWNER,Y
+                BNE +
+                LDY #TS_PREEMPT
                 RTS
++               LDY #TS_COOPTED
+                RTS
++               LDY #TS_READY
++               RTS
 
 ;INPUT : A--
 ;OUTPUT: A--
 ;USED  : -XY
 WAIT            LDY TID
                 STA WAIT0,Y
+                JSR COOP_RELEASE    ; let the co-op's other tasks run
                 LDA WAIT0,Y
                 BEQ +
                 LDA #TS_WAIT        ;wait/sleep (can select lower priority)
@@ -58,25 +89,6 @@ WAIT            LDY TID
                 BNE ++
 +               LDA #TS_READY       ;YIELD (can't select lower priority)
                 STA TASK_STATE0,Y
-
-                ; Re-enable CO-OPTED tasks
-+               LDA COOP0,Y
--               INY
-                CPY MAX_TASKS
-                BNE +
-                LDY #$00
-+               CPY TID
-                BEQ +
-                CMP COOP0,Y
-                BNE -
-                LDX TASK_STATE0,Y
-                CPX #TS_COOPTED
-                BNE -
-                TAX
-                LDA #TS_READY
-                STA TASK_STATE0,Y
-                TXA
-                JMP -
 
                 ; Going to Sleep
 +               JSR UM_TS_PROC
@@ -329,7 +341,10 @@ addtask
 
 ; @todo - NEEDS UPDATED
 END_TASK:
-                LDA #TS_INVALID
                 LDY TID
+                SEI
+                JSR COOP_RELEASE    ; free its co-op first
+                LDA #TS_INVALID
                 STA TASK_STATE0,Y
+                CLI
                 JSR UM_TS_PROC   ; Will never come back

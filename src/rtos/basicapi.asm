@@ -159,7 +159,10 @@ USR_SETCOOP:    JSR COMBYT   ; TID
                 TXA
                 PHA
                 JSR COMBYT   ; COOP
-                PLA
+                CPX #mxcoops
+                BCC +
+                JMP FCERR    ; ?ILLEGAL QUANTITY: co-ops are 0-15
++               PLA
                 TAY
                 TXA
                 JSR SET_COOP ; y = TID, A = New Co-op
@@ -307,9 +310,14 @@ USR_REMTASK:
                 JSR CHRGOT
                 BEQ +
                 JSR COMBYT
-+               LDA #TS_INVALID
-                STA TASK_STATE0,X
-                JSR UM_TS_PROC   ; Will never come back
++               TXA
+                TAY
+                SEI
+                JSR COOP_RELEASE ; free its co-op so its other tasks can run
+                LDA #TS_INVALID
+                STA TASK_STATE0,Y
+                CLI
+                JSR UM_TS_PROC   ; never comes back if the task ended itself
                 LDY #$00
                 JMP SNGFLT
 

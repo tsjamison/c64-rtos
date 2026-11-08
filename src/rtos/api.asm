@@ -193,22 +193,22 @@ ENQ_EMPTY       RTS
 ;Return Y = Length received
 ;(DSCTMP+1) = ptr to string (allocated as BASIC string)
 DEQUEUE:
+                STA DEQUEUE_L
+                CMP #$00
+                BEQ DQ_ZERO
                 LDX QTAIL               
                 CPX QHEAD               ; If there are bytes
                 BNE +                   ; Then don't wait
-                PHA
                 LDA #QUEUE_SIGNAL       ; Wait for bytes
                 JSR WAIT
-                PLA
-+               STA DEQUEUE_L
-                SEC
++               SEC
                 LDA QTAIL
                 SBC QHEAD               ; Calculate # bytes received
                 CMP DEQUEUE_L
                 BCS +                   ; skip if Received >= Requested
                 STA DEQUEUE_L           ; Less than requested
 +               LDA DEQUEUE_L           ; Get # bytes to return
-                JSR STRSPA              ; Allocate BASIC string variable
+DQ_ZERO         JSR STRSPA              ; Allocate BASIC string variable
                 LDX QHEAD               ; X = Source Index
                 LDY #$00                ; Y = Destination Index
 -               LDA QDATA0,X            ; Get a byte
@@ -218,12 +218,14 @@ DEQUEUE:
                 CPY DEQUEUE_L
                 BNE -                   ; Loop until all bytes copied
                 STX QHEAD               ; Update QHEAD
-				LDY TID
-				LDA SIGNAL0,Y
-				AND #~QUEUE_SIGNAL
-				STA SIGNAL0,Y
-				LDY NEWH
-				RTS
+                LDY TID
+                SEI
+                LDA SIGNAL0,Y
+                AND #~QUEUE_SIGNAL
+                STA SIGNAL0,Y
+                CLI
+                LDY DEQUEUE_L
+                RTS
 
 
 

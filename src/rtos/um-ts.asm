@@ -85,8 +85,6 @@ UM_TS.NEXT      DEY
 +               CPY TID
                 BNE -
 
-                CPY NTID
-                BEQ TS_SWAP_END
                 LDA NTID
                 CMP #$FF
                 BNE +
@@ -113,10 +111,13 @@ UM_TS.NEXT      DEY
                 TYA
                 STA COOP_OWNER,X
 
+                LDY TID
+                CPY NTID
+                BEQ TS_SWAP_END
+
 ;DO TASK SWAP
                 TSX
                 TXA
-                LDY TID
                 STA SP0,Y
 
                 LDA #<+

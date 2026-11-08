@@ -53,15 +53,16 @@ UM_TS.LOOP
 +               LDY TID
                 LDA TASK_STATE0,Y
                 CMP #TS_RUN
-                BNE UM_TS.NEXT
+                BNE +
                 JSR COOP_OK
-                BCS UM_TS.NEXT   ; moved into a co-op another task holds
+                BCS +   ; moved into a co-op another task holds
                 STY NTID
                 LDA PRI0,Y
                 STA MXPRI
                 JMP UM_TS.NEXT
 
 ;loop: highest-priority READY task that its co-op allows
++
 -               LDA TASK_STATE0,Y
                 CMP #TS_READY
                 BNE UM_TS.NEXT

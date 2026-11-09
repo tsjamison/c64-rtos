@@ -10,7 +10,7 @@
 60 print" 2 usr(200): bad usr number"
 70 print" 3 usr(8),200,1: bad task id"
 80 print" 4 usr(6),0,16: bad co-op (fixed)"
-90 print" 5 idle screen blanking"
+90 print" 5 idle border stripes"
 95 input"which";k:print:on k goto 1000,2000,3000,4000,5000:end
 1000 print"forking until the slots run out."
 1010 print"dead keyboard after the error"
@@ -28,7 +28,8 @@
 4000 print"expect ?illegal quantity error."
 4010 q=usr(6),0,16:print"no error: check failed":end
 5000 print"task 0 sleeps 3s with no other task."
-5010 print"screen goes blank = still open."
+5010 print"border stripes, screen on = fixed."
+5015 print"screen goes blank = old behaviour."
 5020 q=usr(9),180:print"done":end
 8999 rem ---- shared test harness ----
 9000 if ok then ps=ps+1:print"pass ";n$:return

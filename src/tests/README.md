@@ -48,7 +48,7 @@ python3 src/tests/bas2prg.py src/tests/test1.bas release/test1
 | `test7` | `USR(2)`, `USR(3)`, `USR(5)`, `USR(6)` | A higher priority starving lower ones, equal priority in separate co-ops sharing time, one co-op running one task, the co-opted state, FORBID stopping pre-emption, other tasks pre-empting each other while a forbidden task sleeps |
 | `test8` | Scheduler and co-op owners | A lone task waking from a sleep and a yield, and showing running (2) afterwards; a co-op mate not cutting in after a lone yield; a busy owner blocking its mate (7); a pre-empted owner showing 8; ending or moving the owner freeing the co-op |
 | `test9` | Open-issue checks | The FORBID count leaking into another task across a wait, or outliving a task that ends while forbidden; a reused slot inheriting the old task's timer, signals and priority; a queue signal with an empty queue; two waiting `USR(12)` calls keeping their own lengths; `USR(12),0` overwriting strings |
-| `knownbugs` | Issues a test can't check safely | A menu: FORK with no free slot, `USR(200)`, a task ID past the arrays, a co-op over 15, idle screen blanking. Each choice says what fixed and open look like |
+| `knownbugs` | Issues a test can't check safely | A menu: FORK with no free slot, `USR(200)`, a task ID past the arrays, a co-op over 15, the idle border stripes. Each choice says what fixed and open look like |
 
 Most `knownbugs` choices hang or crash the machine while their issue is open. Reset after each.
 
@@ -64,7 +64,7 @@ Run headless in VICE on Nov 9 after the issue 4 and 5 fixes (see "Running headle
 | 2 `USR(200)` | Screen cleared to a lone `READY.`, no error: still open |
 | 3 `USR(8),200,1` | "no error: still open" |
 | 4 `USR(6),0,16` | `?ILLEGAL QUANTITY ERROR`: fixed |
-| 5 Idle blanking | `$D011` = `$8B` (bit 4 clear) while task 0 sleeps alone: still open |
+| 5 Idle border stripes | Border stripes while task 0 sleeps alone, screen stays on (`$D011` = `$1B`): fixed, the RTOS no longer blanks the screen |
 
 Run `test9` last in a session: while `USR(12),0` still overruns, its final check can corrupt strings.
 

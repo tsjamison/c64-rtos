@@ -89,10 +89,9 @@ UM_TS.NEXT      DEY
                 CMP #$FF
                 BNE +
 
-; No task selected to run
-                LDA $D011
-                AND #$EF
-                STA $D011
+; No task selected to run: cycle the border colour on every pass, so
+; idle time shows as stripes in the border (task colours are solid)
+                INC $D020
                 JMP UM_TS.LOOP
 
 ;New Task is different from current Task
@@ -139,7 +138,6 @@ UM_TS.NEXT      DEY
                 LDY #XFER_LOAD
                 LDX NTID
                 STX TID
-                STX $D020
                 JMP XFER_BASIC_XY
 
 +               LDY TID
@@ -148,9 +146,7 @@ UM_TS.NEXT      DEY
                 LDA FORBID0,Y      ; new task gets its own count back;
                 STA TS_ENABLE      ; PERMIT below takes off UM_TS's 1
 
-TS_SWAP_END     LDA $D011
-                ORA #$10
-                STA $D011
+TS_SWAP_END     STY $D020          ; border = running task's colour
 
                 JSR PERMIT
                 CLI

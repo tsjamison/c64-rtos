@@ -107,6 +107,7 @@ install
 skip_install
 ; reset variables
                 LDA #$00
+                STA $D020      ; Initialize border color
                 STA TID  ;TASK ID
                 STA QHEAD
                 STA QTAIL

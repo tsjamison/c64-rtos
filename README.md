@@ -225,7 +225,7 @@ Each task has its own copy of zero page, the stack, $0200-$03FF, its variables a
 * The keyboard buffer is per task, so keystrokes can be lost or go to whichever task happens to be running.
 * WAITM reads its address every jiffy. Avoid registers that change when read, such as the CIA interrupt register at $DC0D.
 
-The border color reflects which current task is running.
+The border color reflects which current task is running. When no task is ready to run, the border cycles through colors on every pass of the scheduler's idle loop, so idle time shows as stripes in the border.
 
 
 

@@ -223,6 +223,10 @@ DEQUEUE:
 DQ_ZERO         JSR STRSPA              ; Allocate BASIC string variable
                 LDX QHEAD               ; X = Source Index
                 LDY #$00                ; Y = Destination Index
+
+                CPY DEQUEUE_L
+                BEQ +
+
 -               LDA QDATA0,X            ; Get a byte
                 STA (DSCTMP+1),Y        ; Store a byte
                 INX
@@ -230,7 +234,7 @@ DQ_ZERO         JSR STRSPA              ; Allocate BASIC string variable
                 CPY DEQUEUE_L
                 BNE -                   ; Loop until all bytes copied
                 STX QHEAD               ; Update QHEAD
-                LDY TID
++               LDY TID
                 SEI
                 LDA SIGNAL0,Y
                 AND #~QUEUE_SIGNAL

@@ -67,9 +67,6 @@ void UM_TS(void) {
 			}
 		} while (1);
 
-		if (ntid == tid)		// y == tid here
-			break;			// keep running, goto TS_SWAP_END
-
 		if (ntid == 0xFF) {
 			// No task selected to run: blank the screen and
 			// look again. FORBID is not called again.
@@ -83,6 +80,9 @@ void UM_TS(void) {
 			task_state[tid] = TS_READY;
 		task_state[ntid] = TS_RUN;
 		coop_owner[coop[ntid]] = ntid;	// new task takes its co-op
+
+		if (ntid == tid)
+			break;			// keep running, goto TS_SWAP_END
 
 		// DO TASK SWAP
 		sp0[tid] = S;			// save stack pointer

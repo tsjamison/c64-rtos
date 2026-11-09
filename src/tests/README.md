@@ -13,6 +13,20 @@ run
 
 You need an REU. Test 5's second part needs at least 10 tasks (a 512KB REU), and skips itself on smaller REUs.
 
+## Running headless
+
+`tools/c64run.py` runs a program from `release/` in VICE without a screen: PAL `x64sc`, 1MB REU, warp mode, with `release/` as drive 8. It types `load"<name>",8` and `run`, reads the C64 screen through VICE's remote monitor about once a second, and prints it as text when `passed,` appears. Each test takes about 10 seconds.
+
+```
+bash tools/setup-vice.sh                 # once per session: unpacks 64tass and VICE into ~/opt
+python3 tools/c64run.py test1            # one test
+python3 tools/c64run.py --all            # test1..test9 and a summary
+python3 tools/c64run.py knownbugs --keys '3\n' --until error
+python3 tools/c64run.py knownbugs --keys '1\n' --until error --regs
+```
+
+`--regs` prints the CPU registers at the end, and `--mon CMD` runs any VICE monitor command (for example `--mon "m d011 d011"`). `--drive DIR` uses another folder as drive 8. The setup script needs `archive.ubuntu.com` allowed and the C64 ROMs in `tools/roms` (not in git).
+
 To rebuild a PRG without VS64:
 
 ```
@@ -38,16 +52,25 @@ python3 src/tests/bas2prg.py src/tests/test1.bas release/test1
 
 Most `knownbugs` choices hang or crash the machine while their issue is open. Reset after each.
 
-### Expected failures with the Nov 8 code
+### Results with the Nov 9 code
 
-These checks target open issues in the analysis doc, so they should fail until the issue is fixed:
+Run headless in VICE on Nov 9 (see "Running headless" below): 80 of 87 checks pass. `test1`–`test8` pass in full. `test9` fails the 7 checks that target open issues in the analysis doc:
 
-| Program | Failing checks | Open issue |
-| --- | --- | --- |
-| `test8` | "re-picked after sleep/yield: running (2)", "mate co-opted (7) after lone yield", "mate waits until task 0 waits" | 1: a re-picked task stays READY without its co-op |
-| `test9` | "usr(2) count doesn't leak to others" | 5: FORBID carries across a wait |
-| `test9` | "new task doesn't get old priority", "no stale timer or signal wakes it" | 4: stale settings in a reused slot |
-| `test9` | "woken on empty queue, waits again", "then gets hi", "first waiter gets all 10 bytes", "second waiter gets its xy", "usr(12),0 leaves strings alone" | 2: `USR(12)` overruns and shares `DEQUEUE_L` |
+| Failing checks | Open issue |
+| --- | --- |
+| "usr(2) count doesn't leak to others" | 5: FORBID carries across a wait |
+| "new task doesn't get old priority", "no stale timer or signal wakes it" | 4: stale settings in a reused slot |
+| "woken on empty queue, waits again", "then gets hi", "first waiter gets all 10 bytes", "second waiter gets its xy" | 2: `USR(12)` doesn't wait again and shares `DEQUEUE_L` |
+
+`knownbugs` on the same day:
+
+| Choice | Result |
+| --- | --- |
+| 1 FORK with no free slot | `?OUT OF MEMORY`, then READY with interrupts on (I flag clear): no freeze |
+| 2 `USR(200)` | Screen cleared to a lone `READY.`, no error: still open |
+| 3 `USR(8),200,1` | "no error: still open" |
+| 4 `USR(6),0,16` | `?ILLEGAL QUANTITY ERROR`: fixed |
+| 5 Idle blanking | `$D011` = `$8B` (bit 4 clear) while task 0 sleeps alone: still open |
 
 Run `test9` last in a session: while `USR(12),0` still overruns, its final check can corrupt strings.
 

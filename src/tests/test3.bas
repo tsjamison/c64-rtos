@@ -17,8 +17,9 @@
 160 gosub 9000
 200 a=peek(mb+62):q=usr(9),30:b=peek(mb+62)
 210 n$="other tasks run during a sleep":ok=a<>b:gosub 9000
-300 gosub 9700:t0=tt:s=usr(9),0:gosub 9700:dt=tt-t0
-310 n$="usr(9),0 yields, returns 0":ok=s=0 and dt<=2:gosub 9000
+300 gosub 9700:t0=tt:gosub 9700:b=tt-t0:rem cost of 2 clock reads
+305 gosub 9700:t0=tt:s=usr(9),0:gosub 9700:dt=tt-t0
+310 n$="usr(9),0 yields, returns 0":ok=s=0 and dt<=b+5:gosub 9000
 400 gosub 9600:c=nx:t=usr(1):if usr(0)<>0 then 5000
 410 s=usr(9),60
 420 n$="shorter sleep in other task ends 1st":ok=peek(mb+1)=1

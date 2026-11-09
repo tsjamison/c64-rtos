@@ -8,14 +8,14 @@
 40 print"test 9: forbid, slot reuse, queue":print
 100 rem forbid across a wait. no keeper here:
 101 rem a busy task would hog the cpu
-110 gosub 9600:c=nx:t=usr(1):if usr(0)<>0 then 5000
+110 gosub 9600:c=nx:t=usr(1):gosub 9640:if usr(0)<>0 then 5000
 120 f=usr(2):poke mb+1,1:q=usr(9),30:f=usr(3)
 130 wa=mb+2:gosub 9400
 140 n$="usr(2) count doesn't leak to others":ok=peek(mb+2)=1:gosub 9000
 150 ws=0:gosub 9500
 200 rem slot reuse: old timer, signal, priority
 210 gosub 9100
-220 gosub 9600:x=nx:t=usr(1):if usr(0)<>0 then 5100
+220 gosub 9600:x=nx:t=usr(1):gosub 9640:if usr(0)<>0 then 5100
 230 c=x:ws=4:gosub 9500:q=usr(5),x,3:r=usr(8),x,2
 240 q=usr(4),x
 250 gosub 9650:y=nx:t=usr(1):if usr(0)<>0 then 5200
@@ -27,16 +27,16 @@
 310 gosub 9000
 320 r=usr(8),y,3:c=y:ws=0:gosub 9500
 400 rem queue signal with an empty queue
-410 gosub 9600:c=nx:t=usr(1):if usr(0)<>0 then 5300
+410 gosub 9600:c=nx:t=usr(1):gosub 9640:if usr(0)<>0 then 5300
 420 ws=4:gosub 9500:r=usr(8),c,16:q=usr(9),10:s=usr(14),c
 430 n$="woken on empty queue, waits again":ok=s=4 and peek(mb+4)=255
 440 gosub 9000:ok=0
 450 if s=4 then a=usr(11)"hi",c:wa=mb+4:gosub 9400:ok=peek(mb+4)=1
 460 n$="then gets hi":gosub 9000:ws=0:gosub 9500
 500 rem two waiting usr(12) calls keep their own lengths
-510 gosub 9600:a=nx:r=5:t=usr(1):if usr(0)<>0 then 5400
+510 gosub 9600:a=nx:r=5:t=usr(1):gosub 9640:if usr(0)<>0 then 5400
 520 c=a:ws=4:gosub 9500
-530 gosub 9600:b=nx:r=6:t=usr(1):if usr(0)<>0 then 5400
+530 gosub 9600:b=nx:r=6:t=usr(1):gosub 9640:if usr(0)<>0 then 5400
 540 c=b:ws=4:gosub 9500
 550 q=usr(11)"abcdefghij",a:wa=mb+5:gosub 9400
 560 n$="first waiter gets all 10 bytes":ok=peek(mb+5)=10:gosub 9000
@@ -59,7 +59,7 @@
 9010 fl=fl+1:print"{rvon}fail{rvof} ";n$:return
 9100 rem fork a busy keeper task so a sleeping task always has
 9101 rem another task to switch to (avoids open issue 1)
-9110 gosub 9600:kp=nx:t=usr(1):if usr(0)<>0 then 9150
+9110 gosub 9600:kp=nx:t=usr(1):gosub 9640:if usr(0)<>0 then 9150
 9120 return
 9150 poke mb+62,(peek(mb+62)+1)and 255:goto 9150
 9300 rem end: remove keeper, print summary
@@ -75,10 +75,15 @@
 9520 s=usr(14),c:if s=ws then return
 9530 w=w+1:if w>300 then return
 9540 q=usr(9),1:goto 9520
-9600 rem nx = slot the next fork will use. give it its own
-9601 rem co-op and priority 0 so new tasks are pre-emptive
+9600 rem nx = slot the next fork will use. cn = the co-op 9640
+9601 rem gives it: its own by default, so new tasks are pre-emptive
 9610 gosub 9650:if nx=0 then print"no free task slot":end
-9630 q=usr(6),nx,nx:q=usr(5),nx,0:return
+9630 cn=nx:return
+9640 rem after a fork the child has the parent's co-op and priority.
+9641 rem the parent moves it to co-op cn, priority 0. the child can't
+9642 rem run before that: it is in the parent's co-op
+9645 if usr(0)=0 then q=usr(6),nx,cn:q=usr(5),nx,0
+9646 return
 9650 rem nx = slot the next fork will use, settings untouched
 9660 nx=0:for i=1 to mt-1:s=usr(14),i:if s=0 and nx=0 then nx=i
 9670 next:return

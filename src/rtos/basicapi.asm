@@ -91,6 +91,20 @@ USR_FORK:
                 LDA #TS_READY
                 STA TASK_STATE0,X
 
+; Start the new task clean: no sleep timer, signals or wait mask left
+; over from the slot's last task, and the parent's priority and co-op.
+; Interrupts are still off, so INT can't post to the slot meanwhile.
+                LDA #$00
+                STA SLEEP0,X
+                STA SLEEP1,X
+                STA SIGNAL0,X
+                STA WAIT0,X
+                LDY TID
+                LDA PRI0,Y
+                STA PRI0,X
+                LDA COOP0,Y
+                STA COOP0,X
+
 ; Duplicate current task's memory for new task
                 LDA #<+
                 STA RTSL

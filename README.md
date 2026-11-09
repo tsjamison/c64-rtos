@@ -55,6 +55,8 @@ This duplicates the current process, with the task number getting returned.
 This results in now two copies of the program getting executed at the same time.
 The original copy usr(1) returns the calling task's ID. The newly created copy returns a newly allocated ID.
 
+The new task starts with the parent's priority and co-op, and with no pending signals, sleep timer or wait. Because it shares the parent's co-op, it can't run until the parent waits or yields, or until it is moved to another co-op with USR(6).
+
 ### USR(2) - FORBID
 Prevents other tasks from being scheduled to run by the dispatcher, until a matching Permit() is executed.
 

@@ -119,6 +119,8 @@ UM_TS.NEXT      DEY
                 TSX
                 TXA
                 STA SP0,Y
+                LDA TS_ENABLE      ; each task keeps its own FORBID count
+                STA FORBID0,Y      ; (plus the 1 UM_TS added on entry)
 
                 LDA #<+
                 STA RTSL
@@ -143,6 +145,8 @@ UM_TS.NEXT      DEY
 +               LDY TID
                 LDX SP0,Y
                 TXS
+                LDA FORBID0,Y      ; new task gets its own count back;
+                STA TS_ENABLE      ; PERMIT below takes off UM_TS's 1
 
 TS_SWAP_END     LDA $D011
                 ORA #$10

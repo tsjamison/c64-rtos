@@ -119,6 +119,7 @@ skip_install
                 STA SIGNAL0,Y  ;CLEAR SIGNAL ARRAY
                 STA SLEEP0,Y   ;CLEAR SLEEP ARRAY LO
                 STA SLEEP1,Y   ;CLEAR SLEEP ARRAY HI
+                STA FORBID0,Y  ;CLEAR FORBID COUNTS
                 DEY
                 BPL -
                 LDA #TS_RUN
@@ -318,6 +319,7 @@ POKER0:         .fill mxtasks*2   ; 16-bit address per task
 EORMSK0:        .fill mxtasks
 ANDMSK0:        .fill mxtasks
 WAITM0:         .fill mxtasks
+FORBID0:        .fill mxtasks   ; saved TS_ENABLE per task
 
 TID:            .BYTE ?
 NTID:           .BYTE ?

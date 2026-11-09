@@ -13,6 +13,9 @@
 130 wa=mb+2:gosub 9400
 140 n$="usr(2) count doesn't leak to others":ok=peek(mb+2)=1:gosub 9000
 150 ws=0:gosub 9500
+160 gosub 9600:c=nx:t=usr(1):gosub 9640:if usr(0)<>0 then 5050
+170 ws=0:gosub 9500:f=usr(2):g=usr(3)
+180 n$="task ending in forbid leaves no count":ok=f=1:gosub 9000
 200 rem slot reuse: old timer, signal, priority
 210 gosub 9100
 220 gosub 9600:x=nx:t=usr(1):gosub 9640:if usr(0)<>0 then 5100
@@ -49,6 +52,7 @@
 900 goto 9300
 5000 if peek(mb+1)=255 then q=usr(9),1:goto 5000
 5010 a=usr(2):b=usr(3):poke mb+2,a:q=usr(4)
+5050 f=usr(2):q=usr(4)
 5100 q=usr(9),120:goto 5100
 5200 r=usr(7),66:poke mb+3,r:r=usr(7),1:q=usr(4)
 5300 a$=usr(12),5:poke mb+4,-(a$="hi"):q=usr(4)

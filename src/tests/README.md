@@ -45,21 +45,16 @@ python3 src/tests/bas2prg.py src/tests/test1.bas release/test1
 | `test4` | `USR(7)`, `USR(8)` | Wait state, signals outside the mask not waking, the waking signal returned, a pending signal ending a wait at once, unmatched signals kept, yield, application signal 8 |
 | `test5` | `USR(10)` | Any bit set, AND mask, EOR mask. Part 2 runs WAITM in task 2 and task 9 at once (the old `POKER0` overflow) |
 | `test6` | `USR(11)`, `USR(12)` between tasks | Consumer waiting on an empty queue, partial reads, two producers whose writes must arrive whole |
-| `test7` | `USR(2)`, `USR(3)`, `USR(5)`, `USR(6)` | A higher priority starving lower ones, equal priority in separate co-ops sharing time, one co-op running one task, the co-opted state, FORBID stopping pre-emption |
+| `test7` | `USR(2)`, `USR(3)`, `USR(5)`, `USR(6)` | A higher priority starving lower ones, equal priority in separate co-ops sharing time, one co-op running one task, the co-opted state, FORBID stopping pre-emption, other tasks pre-empting each other while a forbidden task sleeps |
 | `test8` | Scheduler and co-op owners | A lone task waking from a sleep and a yield, and showing running (2) afterwards; a co-op mate not cutting in after a lone yield; a busy owner blocking its mate (7); a pre-empted owner showing 8; ending or moving the owner freeing the co-op |
-| `test9` | Open-issue checks | The FORBID count leaking into another task across a wait; a reused slot inheriting the old task's timer, signals and priority; a queue signal with an empty queue; two waiting `USR(12)` calls keeping their own lengths; `USR(12),0` overwriting strings |
+| `test9` | Open-issue checks | The FORBID count leaking into another task across a wait, or outliving a task that ends while forbidden; a reused slot inheriting the old task's timer, signals and priority; a queue signal with an empty queue; two waiting `USR(12)` calls keeping their own lengths; `USR(12),0` overwriting strings |
 | `knownbugs` | Issues a test can't check safely | A menu: FORK with no free slot, `USR(200)`, a task ID past the arrays, a co-op over 15, idle screen blanking. Each choice says what fixed and open look like |
 
 Most `knownbugs` choices hang or crash the machine while their issue is open. Reset after each.
 
 ### Results with the Nov 9 code
 
-Run headless in VICE on Nov 9 after the issue 4 fix (see "Running headless" below): 84 of 89 checks pass. `test1`–`test8` pass in full. `test9` fails the 5 checks that target open issues in the analysis doc, both deferred for now:
-
-| Failing checks | Open issue |
-| --- | --- |
-| "usr(2) count doesn't leak to others" | 5: FORBID carries across a wait |
-| "woken on empty queue, waits again", "then gets hi", "first waiter gets all 10 bytes", "second waiter gets its xy" | 2: `USR(12)` doesn't wait again and shares `DEQUEUE_L` (queues are being redesigned) |
+Run headless in VICE on Nov 9 after the issue 4 and 5 fixes (see "Running headless" below): 88 of 92 checks pass. `test1`–`test8` pass in full. `test9` fails the 4 queue checks, which target open issue 2 (queues are being redesigned): "woken on empty queue, waits again", "then gets hi", "first waiter gets all 10 bytes" and "second waiter gets its xy".
 
 `knownbugs` on the same day:
 

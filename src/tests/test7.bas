@@ -28,6 +28,10 @@
 510 for k=1 to 500:next:g=peek(mb+1):f=usr(3)
 520 n$="usr(2) stops pre-emption":ok=g=0:gosub 9000
 530 q=usr(9),30:n$="usr(3) restores it":ok=peek(mb+1)=1:gosub 9000
+540 f=usr(2):poke mb+1,0:poke mb+2,0:q=usr(9),60:g=usr(3)
+550 n$="others pre-empt while forbidden task sleeps"
+560 ok=peek(mb+1)=1 and peek(mb+2)=1:gosub 9000
+570 n$="own forbid count kept across the sleep":ok=f=1 and g=0:gosub 9000
 600 q=usr(4),a:q=usr(4),b:q=usr(4),c:q=usr(4),d
 900 goto 9300
 5000 poke mb+r,1:goto 5000

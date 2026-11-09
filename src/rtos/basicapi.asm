@@ -104,6 +104,8 @@ USR_FORK:
                 STA PRI0,X
                 LDA COOP0,Y
                 STA COOP0,X
+                LDA #$01           ; FORBID count 0, plus the 1 the scheduler's
+                STA FORBID0,X      ; PERMIT takes off when it first runs the task
 
 ; Duplicate current task's memory for new task
                 LDA #<+

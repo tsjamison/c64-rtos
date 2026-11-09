@@ -305,6 +305,8 @@ NEW_TASK:
                 STY NTID
                 LDA #TS_READY
                 STA TASK_STATE0,Y
+                LDA #$01           ; new task starts with FORBID count 0
+                STA FORBID0,Y
                 TSX
                 TXA
                 STA SP0,Y

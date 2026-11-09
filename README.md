@@ -63,6 +63,8 @@ Prevents other tasks from being scheduled to run by the dispatcher, until a matc
 Parameters: <None>  
 Returns: Current Forbid level. Need that many PERMIT to re-enable task switching.
 
+Each task has its own Forbid level, as in AmigaOS. If a task waits or sleeps while forbidden (USR(7), USR(9), USR(10) or USR(12)), the other tasks run and pre-empt each other normally, and the task's Forbid level is back when it resumes. A new task starts at level 0, and a task that ends while forbidden takes its level with it. FORBID and PERMIT only change the calling task's level.
+
 ### USR(3) - PERMIT
 Allows other tasks to be scheduled when paired with matching FORBID.
 

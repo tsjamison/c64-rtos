@@ -235,8 +235,8 @@ The border color reflects which current task is running. When no task is ready t
 
 ```basic
 10 sys 49152
-20 z=usr(5),1,1:x=usr(6),1,1
-30 t=usr(1)
+20 t=usr(1)
+30 if t=0 then z=usr(5),1,1:x=usr(6),1,1
 40 if t=0 then 40
 50 d=usr(10)56320,31,31-j
 60 j=31-peek(56320) and 31
@@ -245,6 +245,8 @@ The border color reflects which current task is running. When no task is ready t
 ```
 
 This code runs the main task as an idle task. A second task waits on the Joystick port 2 to change and displays the state.
+
+Task 0 forks first, then sets the new task's priority and co-op. A new task starts with its parent's settings, so settings made for a slot before the fork would be overwritten.
 
 ## Planned features
 

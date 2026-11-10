@@ -27,19 +27,32 @@ def petscii(ch):
         return o - 32          # unshifted letters $41-$5a
     if "A" <= ch <= "Z":
         return o + 128         # shifted letters $c1-$da
-    if 32 <= o < 96 or ch in "[]":
+    if 32 <= o < 96 or ch in "[]{}":
         return o
     raise ValueError("no petscii for %r" % ch)
+
+
+def code_at(text, i):
+    """(petscii value, end index) for a {name} or {nnn} code at text[i]."""
+    j = text.find("}", i)
+    if j < 0:
+        return None
+    name = text[i + 1:j]
+    if name in CODES:
+        return CODES[name], j + 1
+    if name.isdigit() and int(name) < 256:
+        return int(name), j + 1
+    return None
 
 
 def expand(text):
     """Split text into a list of PETSCII codes, expanding {name} codes."""
     out, i = [], 0
     while i < len(text):
-        if text[i] == "{":
-            j = text.index("}", i)
-            out.append(("raw", CODES[text[i + 1:j]]))
-            i = j + 1
+        c = code_at(text, i) if text[i] == "{" else None
+        if c:
+            out.append(("raw", c[0]))
+            i = c[1]
         else:
             out.append(("chr", text[i]))
             i += 1
@@ -47,30 +60,34 @@ def expand(text):
 
 
 def crunch(body):
-    items = expand(body)
+    """Tokenize one line. Like VS64, {codes} inside a REM stay literal."""
     res, i, quote, raw = [], 0, False, False
-    while i < len(items):
-        kind, v = items[i]
-        if kind == "raw":
-            res.append(v); i += 1; continue
-        if v == '"':
+    while i < len(body):
+        ch = body[i]
+        if ch == "{" and raw != "rem":
+            c = code_at(body, i)
+            if c:
+                res.append(c[0])
+                i = c[1]
+                continue
+        if ch == '"':
             quote = not quote
         if quote or raw:
-            if raw == "data" and v == ":" and not quote:
+            if raw == "data" and ch == ":" and not quote:
                 raw = False
-            res.append(petscii(v)); i += 1; continue
-        rest = "".join(c for k, c in items[i:i + 8] if k == "chr")
+            res.append(petscii(ch))
+            i += 1
+            continue
         for n, tok in enumerate(TOKENS):
-            if rest.startswith(tok) and all(k == "chr" for k, _ in items[i:i + len(tok)]):
+            if body.startswith(tok, i):
                 res.append(0x80 + n)
                 i += len(tok)
-                if tok == "rem":
-                    raw = "rem"
-                elif tok == "data":
-                    raw = "data"
+                if tok in ("rem", "data"):
+                    raw = tok
                 break
         else:
-            res.append(petscii(v)); i += 1
+            res.append(petscii(ch))
+            i += 1
     return res
 
 
@@ -80,9 +97,10 @@ def build(src):
         if not text.strip():
             continue
         m = re.match(r"\s*(\d+)\s?(.*)$", text)
-        if not m:
-            errors.append("%d: no line number" % ln); continue
-        num, body = int(m.group(1)), m.group(2)
+        if m:
+            num, body = int(m.group(1)), m.group(2)
+        else:                       # VS64: an unnumbered line is last + 1
+            num, body = last + 1, text.strip()
         if num <= last:
             errors.append("%d: line %d out of order" % (ln, num))
         last = num

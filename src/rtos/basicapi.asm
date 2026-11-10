@@ -307,8 +307,10 @@ USR_NQ:         JSR FRMEVL
 
                 LDX NEWH
                 LDA #QUEUE_SIGNAL
+                SEI
                 ORA SIGNAL0,X
                 STA SIGNAL0,X
+                CLI
 
 NQ_EMPTY        JSR PERMIT
                 JMP SNGFLT          ; Y = bytes enqueued

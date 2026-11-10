@@ -52,9 +52,9 @@ python3 src/tests/bas2prg.py src/tests/test1.bas release/test1
 
 Most `knownbugs` choices hang or crash the machine while their issue is open. Reset after each.
 
-### Results with the Nov 9 code
+### Results with the Nov 10 code
 
-Run headless in VICE on Nov 9 after the issue 4 and 5 fixes (see "Running headless" below): 88 of 92 checks pass. `test1`–`test8` pass in full. `test9` fails the 4 queue checks, which target open issue 2 (queues are being redesigned): "woken on empty queue, waits again", "then gets hi", "first waiter gets all 10 bytes" and "second waiter gets its xy".
+Run headless in VICE on Nov 10, with the fixes for issues 4 to 10 (see "Running headless" below): 88 of 92 checks pass. `test1`–`test8` pass in full. `test9` fails the 4 queue checks, which target open issue 2 (queues are being redesigned): "woken on empty queue, waits again", "then gets hi", "first waiter gets all 10 bytes" and "second waiter gets its xy".
 
 `knownbugs` on the same day:
 
@@ -62,7 +62,7 @@ Run headless in VICE on Nov 9 after the issue 4 and 5 fixes (see "Running headle
 | --- | --- |
 | 1 FORK with no free slot | `?OUT OF MEMORY`, then READY with interrupts on (I flag clear): no freeze |
 | 2 `USR(200)` | `?ILLEGAL QUANTITY ERROR`: fixed (issue 7) |
-| 3 `USR(8),200,1` | "no error: still open" |
+| 3 `USR(8),200,1` | `?ILLEGAL QUANTITY ERROR`: fixed (issue 10) |
 | 4 `USR(6),0,16` | `?ILLEGAL QUANTITY ERROR`: fixed |
 | 5 Idle border stripes | Border stripes while task 0 sleeps alone, screen stays on (`$D011` = `$1B`): fixed, the RTOS no longer blanks the screen |
 

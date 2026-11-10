@@ -211,7 +211,7 @@ Returns: task state
 
 ## Notes
 
-There is no error-handling. No parameter checking for valid range.
+Some parameters are checked and give ?ILLEGAL QUANTITY ERROR when out of range: the USR number (0-14), task IDs (0 to USR(13)-1) for USR(4), USR(5), USR(6), USR(8), USR(11) and USR(14), and co-op numbers (0-15). Other values, such as priorities and signal masks, are not checked.
 Not every possible situation has been tested.
 Requires an REU. Each task uses one 64KB REU bank, up to 16 tasks: a 1MB or larger REU gives 16 tasks, 512KB gives 8, 256KB gives 4 and 128KB gives 2.
 

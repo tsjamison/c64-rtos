@@ -143,17 +143,26 @@ USR_PERMIT:     JSR PERMIT
                 LDY TS_ENABLE
                 JMP SNGFLT
 
+; Read ",task" into X and check it is a task ID (below MAX_TASKS).
+; Anything else gives ?ILLEGAL QUANTITY ERROR, so a bad ID can't
+; write past the per-task arrays.
+GETTASK         JSR COMBYT
+                CPX MAX_TASKS
+                BCC +
+                JMP FCERR
++               RTS
+
 USR_MAXTASKS:
                 LDY MAX_TASKS
                 JMP SNGFLT
 
 
 USR_STATE:
-                JSR COMBYT   ; TID
+                JSR GETTASK  ; TID
                 JSR GET_STATE
                 JMP SNGFLT
 
-USR_SETPRI:     JSR COMBYT   ; TID
+USR_SETPRI:     JSR GETTASK  ; TID
                 JSR GET_PRI
                 TYA
                 PHA
@@ -168,11 +177,11 @@ USR_SETPRI:     JSR COMBYT   ; TID
                 TAY
                 JMP SNGFLT
 
-USR_GETPRI:     JSR COMBYT
+USR_GETPRI:     JSR GETTASK
                 JSR GET_PRI  ; x = TID, y-> new Pri
                 JMP SNGFLT
 
-USR_SETCOOP:    JSR COMBYT   ; TID
+USR_SETCOOP:    JSR GETTASK  ; TID
                 JSR GET_COOP
                 TYA
                 PHA
@@ -227,7 +236,7 @@ USR_WAIT:       JSR COMBYT
 ; 	return signal0[task]
 ; }
 
-USR_SIGNAL:		JSR COMBYT
+USR_SIGNAL:		JSR GETTASK  ; TID
 				TXA
 				PHA
 				JSR COMBYT
@@ -279,7 +288,7 @@ USR_NQ:         JSR FRMEVL
                 LDA INDEX1+0
                 PHA
 
-                JSR COMBYT
+                JSR GETTASK  ; TID to signal
                 STX NEWH
 
                 PLA
@@ -331,7 +340,7 @@ USR_REMTASK:
                 LDX TID
                 JSR CHRGOT
                 BEQ +
-                JSR COMBYT
+                JSR GETTASK  ; TID
 +               TXA
                 TAY
                 SEI

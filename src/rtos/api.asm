@@ -131,10 +131,12 @@ SIGNAL          SEI                 ; mask IRQs for the read-modify-write
 ;USED  : -XY
 SLEEP
                 LDX TID
+                SEI
                 STA SLEEP1,X
                 TYA
                 STA SLEEP0,X
                 ORA SLEEP1,X
+                CLI
                 BEQ +
                 LDA #TIMER_SIGNAL
                 BNE ++

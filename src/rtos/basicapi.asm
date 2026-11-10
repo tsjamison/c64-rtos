@@ -3,6 +3,8 @@ INDEX1    = $22
 ANDMSK    = $49
 EORMSK    = $4A
 DSCTMP    = $61
+FACMO     = $64
+FACLO     = $65
 CHRGOT    = $79
 ERROR     = $A437
 STROUT    = $AB1E
@@ -24,34 +26,36 @@ FOUT      = $BDDD
 
 
 USRTBL		.word USR_GETTID-1   ;USR(0)
-			.word USR_FORK-1     ;USR(1)
-			.word USR_FORBID-1   ;USR(2)
-			.word USR_PERMIT-1   ;USR(3)
-			.word USR_REMTASK-1  ;USR(4)[,TASK]
-			.word USR_SETPRI-1   ;USR(5),TASK,PRI
-			.word USR_SETCOOP-1  ;USR(6),TASK,COOP
-			.word USR_WAIT-1     ;USR(7),MASK
-			.word USR_SIGNAL-1   ;USR(8),TASK,SIG_SET
-			.word USR_SLEEP-1    ;USR(9),JIFFIES
-			.word USR_WAITM-1    ;USR(10)ADDR,AND[,EOR]
-			.word USR_NQ-1       ;USR(11)STR,TASK
-			.word USR_DQ-1       ;USR(12),LEN
-			.word USR_MAXTASKS-1 ;USR(13)
-			.word USR_STATE-1    ;USR(14),TASK
+                .word USR_FORK-1     ;USR(1)
+                .word USR_FORBID-1   ;USR(2)
+                .word USR_PERMIT-1   ;USR(3)
+                .word USR_REMTASK-1  ;USR(4)[,TASK]
+                .word USR_SETPRI-1   ;USR(5),TASK,PRI
+                .word USR_SETCOOP-1  ;USR(6),TASK,COOP
+                .word USR_WAIT-1     ;USR(7),MASK
+                .word USR_SIGNAL-1   ;USR(8),TASK,SIG_SET
+                .word USR_SLEEP-1    ;USR(9),JIFFIES
+                .word USR_WAITM-1    ;USR(10)ADDR,AND[,EOR]
+                .word USR_NQ-1       ;USR(11)STR,TASK
+                .word USR_DQ-1       ;USR(12),LEN
+                .word USR_MAXTASKS-1 ;USR(13)
+                .word USR_STATE-1    ;USR(14),TASK
 
 
 USR_HANDLER	JSR AYINT
-			LDA $65
-			CMP #15    ; # entries in USRTBL
-			bmi +
-			JMP $B248  ;?ILLEGAL QUANTITY  ERROR
-+			ASL
-			TAY
-			LDA USRTBL+1,Y
-			PHA
-			LDA USRTBL+0,Y
-			PHA
-			RTS
+                LDA FACMO
+                BNE +
+                LDA FACLO
+                CMP #15    ; # entries in USRTBL
+                BCC ++
++		JMP FCERR  ;?ILLEGAL QUANTITY  ERROR
++		ASL
+                TAY
+                LDA USRTBL+1,Y
+                PHA
+                LDA USRTBL+0,Y
+                PHA
+                RTS
 
 
 

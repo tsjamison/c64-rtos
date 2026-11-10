@@ -61,7 +61,7 @@ Run headless in VICE on Nov 9 after the issue 4 and 5 fixes (see "Running headle
 | Choice | Result |
 | --- | --- |
 | 1 FORK with no free slot | `?OUT OF MEMORY`, then READY with interrupts on (I flag clear): no freeze |
-| 2 `USR(200)` | Screen cleared to a lone `READY.`, no error: still open |
+| 2 `USR(200)` | `?ILLEGAL QUANTITY ERROR`: fixed (issue 7) |
 | 3 `USR(8),200,1` | "no error: still open" |
 | 4 `USR(6),0,16` | `?ILLEGAL QUANTITY ERROR`: fixed |
 | 5 Idle border stripes | Border stripes while task 0 sleeps alone, screen stays on (`$D011` = `$1B`): fixed, the RTOS no longer blanks the screen |

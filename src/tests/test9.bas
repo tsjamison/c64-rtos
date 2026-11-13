@@ -1,7 +1,7 @@
 1 rem rtos test 9: open-issue checks
 2 rem forbid, slot reuse, queue edge cases.
 3 rem the last check may overwrite strings
-4 rem while usr(12),0 still overruns
+4 rem (usr(12),0 once overran)
 10 if z=0 then z=1:load"rtos",8,1
 20 sys 49152
 30 gosub 9900
@@ -36,7 +36,7 @@
 440 gosub 9000:ok=0
 450 if s=4 then a=usr(11)"hi",c:wa=mb+4:gosub 9400:ok=peek(mb+4)=1
 460 n$="then gets hi":gosub 9000:ws=0:gosub 9500
-500 rem two waiting usr(12) calls keep their own lengths
+500 rem two tasks waiting on their own queues
 510 gosub 9600:a=nx:r=5:t=usr(1):gosub 9640:if usr(0)<>0 then 5400
 520 c=a:ws=4:gosub 9500
 530 gosub 9600:b=nx:r=6:t=usr(1):gosub 9640:if usr(0)<>0 then 5400

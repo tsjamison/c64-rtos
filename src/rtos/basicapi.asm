@@ -127,7 +127,7 @@ USR_FORK
                 LDA #TS_READY
                 STA TASK_STATE0,X
 
-; Start the new task clean: no sleep timer, signals or wait mask left
+; Start the new task clean: no sleep timer, signals, wait mask or queue left
 ; over from the slot's last task, and the parent's priority and co-op.
 ; Interrupts are still off, so INT can't post to the slot meanwhile.
                 LDA #$00
@@ -135,6 +135,8 @@ USR_FORK
                 STA SLEEP1,X
                 STA SIGNAL0,X
                 STA WAIT0,X
+                STA QHEAD0,X            ; and an empty queue
+                STA QLEN0,X
                 LDY TID
                 LDA PRI0,Y
                 STA PRI0,X
@@ -331,63 +333,41 @@ USR_WAITM       JSR GETNUM              ; POKER = address, X = AND mask
                 JMP SNGFLT
 
 ;------------------------------------------------------------------------
-; USR(11)STR,TASK - add STR to the global queue and signal TASK.
-;       Returns the number of bytes added (fewer if the queue fills).
-;       Does not reschedule: a task waiting in USR(12) wakes the next
-;       time the scheduler runs, normally the next jiffy.
-;       Duplicates ENQUEUE.
+; USR(11)STR,TASK - add STR to TASK's queue and signal TASK. Any task
+;       can write to any task's queue, its own included. A queue holds
+;       QSIZE (16) bytes: returns the number of bytes added, which is
+;       fewer than LEN(STR) if the queue fills, and 0 if it is full.
+;       If TASK is waiting in USR(12), it runs at once if its priority
+;       allows, as with USR(8).
+; Switches tasks: yes, if TASK was waiting for the queue
 ;------------------------------------------------------------------------
 USR_NQ          JSR FRMEVL
                 JSR LEN1                ; Y = length, INDEX1 = address
-                STY NEWL
 
-                LDA INDEX1+1            ; GETTASK's expression evaluation
-                                        ; can change INDEX1
+                TYA                     ; keep them on our stack: GETTASK's
+                PHA                     ; expression evaluation can change
+                LDA INDEX1+1            ; INDEX1, and another task can run
                 PHA
                 LDA INDEX1+0
                 PHA
 
-                JSR GETTASK             ; task to signal
-                STX NEWH
+                JSR GETTASK             ; X = task whose queue gets STR
 
                 PLA
                 STA INDEX1+0
                 PLA
                 STA INDEX1+1
-
-                JSR FORBID
-                LDX QTAIL
-                LDY NEWL
-                BEQ _empty              ; empty string: nothing to enqueue
-                LDY #$00
--               LDA (INDEX1),Y
-                STA QDATA0,X
-                INX
-                INY
-                CPX QHEAD
-                BEQ +                   ; queue full
-                CPY NEWL
-                BNE -
-                BEQ ++                  ; always taken
-+               DEX                     ; full: take back the last byte
-                DEY
-+               STX QTAIL
-
-                LDX NEWH
-                LDA #QUEUE_SIGNAL
-                SEI
-                ORA SIGNAL0,X
-                STA SIGNAL0,X
-                CLI
-
-_empty          JSR PERMIT
-                JMP SNGFLT              ; Y = bytes enqueued
+                PLA
+                TAY
+                JSR ENQUEUE
+                JMP SNGFLT              ; Y = bytes added
 
 ;------------------------------------------------------------------------
-; USR(12),LEN - take up to LEN bytes from the global queue as a string.
-;       Waits if the queue is empty, unless LEN is 0. Open issue 2: a
-;       task woken with the queue empty returns an empty string.
-; Switches tasks: yes, when the queue is empty
+; USR(12),LEN - take up to LEN bytes from the running task's own queue
+;       as a string. Waits while the queue is empty, unless LEN is 0,
+;       which returns an empty string at once. Returns at most QSIZE
+;       (16) bytes, however big LEN is.
+; Switches tasks: yes, while the queue is empty
 ;------------------------------------------------------------------------
 USR_DQ          JSR COMBYT              ; X = LEN
                 TXA

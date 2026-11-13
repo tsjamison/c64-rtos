@@ -1,4 +1,4 @@
-1 rem rtos test 6: queue between tasks
+1 rem rtos test 6: per-task queues
 10 if z=0 then z=1:load"rtos",8,1
 20 sys 49152
 30 gosub 9900
@@ -15,28 +15,36 @@
 190 n$="usr(12),4 takes abcd":ok=peek(mb+4)=1:gosub 9000
 200 n$="usr(12),10 takes the rest":ok=peek(mb+5)=1:gosub 9000
 210 ws=0:gosub 9500
-300 for k=1 to 2:gosub 9600:p$=chr$(64+k)
-305 t=usr(1):gosub 9640:if usr(0)<>0 then 5100
-310 next
-320 wa=mb+11:gosub 9400:wa=mb+12:gosub 9400
-330 b$=usr(12),255
-340 n$="two producers: 200 bytes":ok=len(b$)=200:gosub 9000
-350 ok=-1:na=0
-360 for k=1 to 200 step 10:c$=mid$(b$,k,10):d$=left$(c$,1)
-370 e$=d$+d$+d$+d$+d$+d$+d$+d$+d$+d$:if c$<>e$ then ok=0
-380 if d$="a" then na=na+1
-390 next
-400 n$="each usr(11) arrives in one piece":gosub 9000
-410 n$="10 from each producer":ok=na=10:gosub 9000
+220 a=usr(11)"x",0:a=usr(11)"hello",c:b$=usr(12),255
+230 n$="each task reads only its own queue":ok=b$="x":gosub 9000
+300 rem two producers send 101 bytes each through 16-byte queue
+305 for k=1 to 2:gosub 9600
+310 t=usr(1):gosub 9640:if usr(0)<>0 then 5100
+315 next
+320 b$="":nd=0
+330 c$=usr(12),255:b$=b$+c$
+335 for j=1 to len(c$):nd=nd-(mid$(c$,j,1)="."):next
+340 if nd<2 then 330
+350 n$="two producers: 202 bytes":ok=len(b$)=202:gosub 9000
+360 a$="":c$="":for j=1 to len(b$):d$=mid$(b$,j,1)
+370 if d$>="a" and d$<="j" then a$=a$+d$
+380 if d$>="k" and d$<="t" then c$=c$+d$
+390 next:e$="abcdefghij":f$="klmnopqrst":ok=-1
+400 for j=1 to 10:ok=ok and mid$(a$,j*10-9,10)=e$ and mid$(c$,j*10-9,10)=f$:next
+410 ok=ok and len(a$)=100 and len(c$)=100
+420 n$="each producer's bytes arrive in order":gosub 9000
+430 wa=mb+11:gosub 9400:wa=mb+12:gosub 9400
 900 goto 9300
 5000 a$=usr(12),10:poke mb+1,len(a$):poke mb+2,-(a$="hello")
 5010 if peek(mb+3)=255 then q=usr(9),1:goto 5010
 5020 a$=usr(12),4:poke mb+4,-(a$="abcd")
 5030 a$=usr(12),10:poke mb+5,-(a$="efghij")
 5040 q=usr(4)
-5100 a$=p$+p$+p$+p$+p$+p$+p$+p$+p$+p$
-5110 for j=1 to 10:q=usr(11)a$,0:next
-5120 poke mb+10+k,1:q=usr(4)
+5100 a$=mid$("abcdefghijklmnopqrst",k*10-9,10):s$=""
+5110 for j=1 to 10:s$=s$+a$:next:s$=s$+"."
+5120 n=usr(11)s$,0:s$=mid$(s$,n+1):if n=0 then q=usr(9),0
+5130 if s$<>"" then 5120
+5140 poke mb+10+k,1:q=usr(4)
 8999 rem ---- shared test harness ----
 9000 if ok then ps=ps+1:print"pass ";n$:return
 9010 fl=fl+1:print"{rvon}fail{rvof} ";n$:return

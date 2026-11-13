@@ -25,12 +25,16 @@
 530 b$=usr(12),5:n$="usr(12),5 returns c":ok=b$="c":gosub 9000
 540 s=usr(8),0,0:n$="usr(12) clears signal 16":ok=(s and 16)=0:gosub 9000
 550 a=usr(11)"",0:n$="usr(11) empty string is 0":ok=a=0:gosub 9000
-600 b$="":for k=1 to 200:b$=b$+chr$(65+k-int(k/26)*26):next
-610 a=usr(11)b$,0:c=usr(11)b$,0
-620 n$="queue holds 255 (200+55)":ok=a=200 and c=55:gosub 9000
-630 c$=usr(12),255:n$="usr(12),255 gets 255":ok=len(c$)=255:gosub 9000
-640 ok=left$(c$,200)=b$ and right$(c$,55)=left$(b$,55)
-650 n$="queued bytes come out in order":gosub 9000
+600 b$="abcdefghijklmnopqrst"
+610 a=usr(11)b$,0:c=usr(11)"x",0
+620 n$="queue takes 16 of 20, then 0":ok=a=16 and c=0:gosub 9000
+630 c$=usr(12),255:n$="usr(12),255 gets the 16 in order"
+635 ok=c$=left$(b$,16):gosub 9000
+640 a=usr(11)"0123456789",0:c$=usr(12),6:s=usr(8),0,0
+650 n$="signal 16 stays while bytes are left":ok=(s and 16)=16:gosub 9000
+660 a=usr(11)b$,0:c$=usr(12),255
+670 n$="wraps round and keeps order":ok=a=12 and c$="6789"+left$(b$,12)
+680 gosub 9000
 900 goto 9300
 8999 rem ---- shared test harness ----
 9000 if ok then ps=ps+1:print"pass ";n$:return

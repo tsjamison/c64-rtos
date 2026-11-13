@@ -36,10 +36,11 @@ VIC_BKGND       = $D021         ; background colour
 ;------------------------------------------------------------------------
 MXTASKS         = 16            ; most tasks supported (one REU bank each)
 MXCOOPS         = 16            ; co-ops 0-15, one owner byte each
-QSIZE           = 256           ; global queue, indexed by an 8-bit pointer
+QSIZE           = 16            ; bytes in each task's queue
 
                 .cerror MXCOOPS & (MXCOOPS-1), "MXCOOPS must be a power of two (SET_COOP masks with it)"
-                .cerror QSIZE != 256, "the queue code relies on 8-bit index wrap-around"
+                .cerror QSIZE != 16, "QINDEX shifts the task ID left 4 times"
+                .cerror MXTASKS*QSIZE > 256, "QDATA0 is indexed with X"
 
 ; Task states
 TS_INVALID      = 0
@@ -174,8 +175,6 @@ _install        LDA CINV
 _installed      LDA #$00
                 STA VIC_BORDER          ; border = task 0's colour
                 STA TID                 ; task 0 is running
-                STA QHEAD
-                STA QTAIL
                 LDY MAX_TASKS
                 DEY
 -               STA TASK_STATE0,Y       ; TS_INVALID
@@ -186,6 +185,8 @@ _installed      LDA #$00
                 STA SLEEP0,Y
                 STA SLEEP1,Y
                 STA FORBID0,Y
+                STA QHEAD0,Y
+                STA QLEN0,Y
                 DEY
                 BPL -
                 LDA #TS_RUN
@@ -353,13 +354,14 @@ TID             .byte ?         ; running task
 NTID            .byte ?         ; next task (scheduler, FORK)
 MXPRI           .byte ?         ; scheduler: best priority found so far
 
-QHEAD           .byte ?         ; global queue: next byte to read
-QTAIL           .byte ?         ; global queue: next byte to write
+QHEAD0          .fill MXTASKS   ; queue: offset of the next byte to read, 0-15
+QLEN0           .fill MXTASKS   ; queue: bytes waiting, 0-16
+QTMP            .byte ?         ; QINDEX scratch (callers hold FORBID)
 
 OLD_IRQ         .word ?         ; previous IRQ handler, INT chains to it
 
 NEWL            .byte ?         ; scratch: NEW_TASK start address lo,
-NEWH            .byte ?         ;   USR_NQ length and task, REU size
+NEWH            .byte ?         ;   hi, REU size
 FORK_FLAG       .byte ?         ; NEW_TASK: non-zero = FORK, 0 = ADD_TASK
 ENQUEUE_L       .byte ?         ; ENQUEUE length
 ENQUEUE_T       .byte ?         ; ENQUEUE task to signal
@@ -369,7 +371,7 @@ COOP_OWNER      .fill MXCOOPS   ; task holding each co-op, COOP_FREE = free
 XFER_RET        .word ?         ; where XFER_BASIC_XY returns to
 INT_POKER       .word ?         ; INT scratch: saved POKER
 
-QDATA0          .fill QSIZE     ; global queue data
+QDATA0          .fill MXTASKS*QSIZE ; queue data, QSIZE bytes per task
 REU_TEMP        .fill 257       ; REU_SIZE: probe byte + one saved byte per bank
 REU_LAST        .byte ?         ; REU_SIZE: last bank number read back
 SIZEL           .byte ?         ; REU_SIZE: banks found, lo

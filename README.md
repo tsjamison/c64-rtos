@@ -26,7 +26,7 @@ The following RTOS BASIC functions are implemented:
 | SLEEP      | USR(9),JIFFIES        | Sleeps current task for x Jiffies         |
 | WAITM      | USR(10)ADDR,AND[,EOR] | Multitasking-friendly WAIT: sleep until memory matches |
 | NQ         | USR(11)STR,TASK       | eNQueue a string on TASK's queue          |
-| DQ         | USR(12),LEN           | DeQueue up to LEN chars from own queue    |
+| DQ         | USR(12),LEN           | DeQueue LEN chars from own queue          |
 | MAXTASKS   | USR(13)               | Maximum number of tasks                   |
 | STATE      | USR(14),TASK          | Returns Task State of TASK                |
 
@@ -162,12 +162,16 @@ Returns: Bitmask of the result
 Each task has its own queue of 16 bytes. Any task can add to any task's queue, its own included; only the task itself can read it, with USR(12).
 
 Parameters:  
-    STR - String to add to the queue  
+    STR - String to add to the queue, up to 255 bytes  
     TASK - Task whose queue gets the string. It is sent the queue signal (16)  
-Returns: Number of bytes added. If the queue fills up, only the bytes that fit are added, so check the result and send the rest later. A full queue returns 0.
+Returns: Number of bytes added, normally LEN(STR).
+
+If the queue fills up, USR(11) adds what fits, waits until TASK has read some, adds more, and so on until the whole string is in.
+It stops early, returning the bytes added so far, if TASK ends, or if TASK is the running task and its own queue is full (nobody else could empty it).
 An empty string adds nothing, returns 0 and does not signal TASK.
 If TASK is waiting in USR(12), it runs straight away if its priority allows.
-The bytes from one call are never mixed with bytes from another task's call.
+When several tasks write to the same queue and have to wait for room, their bytes can be interleaved.
+While waiting for room, a task uses signal 128 (queue space).
 
 Example:
 ```
@@ -180,10 +184,10 @@ a will have 5, and b will have 6
 ### USR(12),LEN - Dequeue a string of at most length LEN
 
 Parameters:  
-    LEN - Maximum number of bytes to grab  
-Returns:  a string of up to LEN bytes.
+    LEN - Number of bytes to read, 0-255  
+Returns:  a string of LEN bytes.
 
-Reads the running task's own queue. It waits while the queue is empty; otherwise it returns up to LEN bytes immediately. A queue holds 16 bytes, so it never returns more than 16.
+Reads the running task's own queue. It takes what is there, and whenever the queue is empty and more bytes are wanted, it waits for more, until it has all LEN bytes. A queue holds 16 bytes, but LEN can be larger: writers wait for room as it reads.
 LEN of 0 returns an empty string immediately, without waiting.
 The queue signal (16) stays set while bytes are left in the queue.
 A new task starts with an empty queue.

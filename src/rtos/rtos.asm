@@ -53,8 +53,8 @@ TS_REMOVED      = 6             ; defined but not used yet
 TS_COOPTED      = 7             ; not stored: GET_STATE works these two out
 TS_PREEMPT      = 8             ; from COOP_OWNER for USR(14)
 
-; Signal masks. $80 is reserved; $01, $02, $04 and $08 are for
-; applications.
+; Signal masks. $01, $02, $04 and $08 are for applications.
+QSPACE_SIGNAL   = $80           ; room in the queue a task is writing to
 TIMER_SIGNAL    = $40
 WAITM_SIGNAL    = $20
 QUEUE_SIGNAL    = $10
@@ -191,6 +191,11 @@ _installed      LDA #$00
                 BPL -
                 LDA #TS_RUN
                 STA TASK_STATE0
+                LDX #MXTASKS-1          ; no task is writing to a queue
+                LDA #NO_TASK
+-               STA NQ_TO0,X
+                DEX
+                BPL -
 
 ; All co-ops free, except co-op 0, held by running task 0
                 LDX #MXCOOPS-1
@@ -357,15 +362,27 @@ MXPRI           .byte ?         ; scheduler: best priority found so far
 QHEAD0          .fill MXTASKS   ; queue: offset of the next byte to read, 0-15
 QLEN0           .fill MXTASKS   ; queue: bytes waiting, 0-16
 QTMP            .byte ?         ; QINDEX scratch (callers hold FORBID)
+NQ_TO0          .fill MXTASKS   ; USR(11): queue being written to, NO_TASK = none
+NQ_LEN0         .fill MXTASKS   ; USR(11): bytes to write
+NQ_DONE0        .fill MXTASKS   ; USR(11): bytes written so far
+NQ_ADRL0        .fill MXTASKS   ; USR(11): address of the bytes, lo
+NQ_ADRH0        .fill MXTASKS   ;   and hi
+DQ_LEN0         .fill MXTASKS   ; USR(12): bytes to read
+DQ_DONE0        .fill MXTASKS   ; USR(12): bytes read so far
+DQ_ADRL0        .fill MXTASKS   ; USR(12): address of the new string, lo
+DQ_ADRH0        .fill MXTASKS   ;   and hi
 
 OLD_IRQ         .word ?         ; previous IRQ handler, INT chains to it
 
 NEWL            .byte ?         ; scratch: NEW_TASK start address lo,
 NEWH            .byte ?         ;   hi, REU size
 FORK_FLAG       .byte ?         ; NEW_TASK: non-zero = FORK, 0 = ADD_TASK
-ENQUEUE_L       .byte ?         ; ENQUEUE length
-ENQUEUE_T       .byte ?         ; ENQUEUE task to signal
-DEQUEUE_L       .byte ?         ; DEQUEUE length
+ENQUEUE_L       .byte ?         ; NQ_FILL scratch: length, (FORBID held)
+ENQUEUE_T       .byte ?         ;   queue owner,
+ENQUEUE_S       .byte ?         ;   bytes written before this pass
+DEQUEUE_L       .byte ?         ; DQ_TAKE scratch: bytes this pass,
+QCOUNT          .byte ?         ;   bytes copied (FORBID held)
+QWOKE           .byte ?         ; POST_WRITERS scratch (IRQs masked)
 COOP_OWNER      .fill MXCOOPS   ; task holding each co-op, COOP_FREE = free
 
 XFER_RET        .word ?         ; where XFER_BASIC_XY returns to

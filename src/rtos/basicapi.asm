@@ -137,6 +137,8 @@ USR_FORK
                 STA WAIT0,X
                 STA QHEAD0,X            ; and an empty queue
                 STA QLEN0,X
+                LDA #NO_TASK            ; not writing to a queue
+                STA NQ_TO0,X
                 LDY TID
                 LDA PRI0,Y
                 STA PRI0,X
@@ -262,7 +264,7 @@ USR_SETCOOP     JSR GETTASK
 ; USR(7),MASK - wait for any signal in MASK. Always passes through the
 ;       scheduler, so it is a yield point even if a signal is already
 ;       there. Returns the signals in MASK that woke the task.
-;       Signals: $80 reserved, $40 timer, $20 memory, $10 queue,
+;       Signals: $80 queue space, $40 timer, $20 memory, $10 queue,
 ;       $01, $02, $04 and $08 for applications.
 ; Switches tasks: yes
 ;------------------------------------------------------------------------
@@ -333,13 +335,14 @@ USR_WAITM       JSR GETNUM              ; POKER = address, X = AND mask
                 JMP SNGFLT
 
 ;------------------------------------------------------------------------
-; USR(11)STR,TASK - add STR to TASK's queue and signal TASK. Any task
-;       can write to any task's queue, its own included. A queue holds
-;       QSIZE (16) bytes: returns the number of bytes added, which is
-;       fewer than LEN(STR) if the queue fills, and 0 if it is full.
-;       If TASK is waiting in USR(12), it runs at once if its priority
-;       allows, as with USR(8).
-; Switches tasks: yes, if TASK was waiting for the queue
+; USR(11)STR,TASK - write STR (up to 255 bytes) to TASK's queue. Any
+;       task can write to any task's queue. A queue holds QSIZE (16)
+;       bytes: when it is full, waits until TASK reads some, then writes
+;       more. TASK gets QUEUE_SIGNAL, and runs at once if it was waiting
+;       for bytes and its priority allows. Returns the bytes written:
+;       LEN(STR), or fewer if TASK ended, or if TASK is the running task
+;       and its own queue filled (nobody else could empty it).
+; Switches tasks: yes, when the queue is full or TASK was waiting
 ;------------------------------------------------------------------------
 USR_NQ          JSR FRMEVL
                 JSR LEN1                ; Y = length, INDEX1 = address
@@ -363,11 +366,11 @@ USR_NQ          JSR FRMEVL
                 JMP SNGFLT              ; Y = bytes added
 
 ;------------------------------------------------------------------------
-; USR(12),LEN - take up to LEN bytes from the running task's own queue
-;       as a string. Waits while the queue is empty, unless LEN is 0,
-;       which returns an empty string at once. Returns at most QSIZE
-;       (16) bytes, however big LEN is.
-; Switches tasks: yes, while the queue is empty
+; USR(12),LEN - read LEN bytes (0-255) from the running task's own
+;       queue as a string. Waits whenever the queue is empty until all
+;       LEN bytes have arrived. LEN 0 returns an empty string at once.
+; Switches tasks: yes, while the queue is empty, or when a writer was
+;       waiting for room
 ;------------------------------------------------------------------------
 USR_DQ          JSR COMBYT              ; X = LEN
                 TXA
@@ -393,6 +396,9 @@ USR_REMTASK     LDX TID
                 JSR COOP_RELEASE        ; free its co-op so its other tasks can run
                 LDA #TS_INVALID
                 STA TASK_STATE0,Y
+                TYA
+                TAX
+                JSR POST_WRITERS        ; writers to its queue give up
                 CLI
                 JSR UM_TS_PROC          ; never comes back if the task ended itself
                 LDY #$00

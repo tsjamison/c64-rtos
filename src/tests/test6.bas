@@ -13,38 +13,41 @@
 170 gosub 9000
 180 a=usr(11)"abcdefghij",c:poke mb+3,1:wa=mb+5:gosub 9400
 190 n$="usr(12),4 takes abcd":ok=peek(mb+4)=1:gosub 9000
-200 n$="usr(12),10 takes the rest":ok=peek(mb+5)=1:gosub 9000
+200 n$="usr(12),6 takes the rest":ok=peek(mb+5)=1:gosub 9000
 210 ws=0:gosub 9500
-220 a=usr(11)"x",0:a=usr(11)"hello",c:b$=usr(12),255
+220 a=usr(11)"x",0:a=usr(11)"hello",c:b$=usr(12),1
 230 n$="each task reads only its own queue":ok=b$="x":gosub 9000
-300 rem two producers send 101 bytes each through 16-byte queue
-305 for k=1 to 2:gosub 9600
-310 t=usr(1):gosub 9640:if usr(0)<>0 then 5100
-315 next
-320 b$="":nd=0
-330 c$=usr(12),255:b$=b$+c$
-335 for j=1 to len(c$):nd=nd-(mid$(c$,j,1)="."):next
-340 if nd<2 then 330
-350 n$="two producers: 202 bytes":ok=len(b$)=202:gosub 9000
-360 a$="":c$="":for j=1 to len(b$):d$=mid$(b$,j,1)
-370 if d$>="a" and d$<="j" then a$=a$+d$
-380 if d$>="k" and d$<="t" then c$=c$+d$
-390 next:e$="abcdefghij":f$="klmnopqrst":ok=-1
-400 for j=1 to 10:ok=ok and mid$(a$,j*10-9,10)=e$ and mid$(c$,j*10-9,10)=f$:next
-410 ok=ok and len(a$)=100 and len(c$)=100
+300 rem two producers send 101 bytes each in one usr(11)
+305 rem through a 16-byte queue; one usr(12) reads all 202
+310 for k=1 to 2:gosub 9600
+315 t=usr(1):gosub 9640:if usr(0)<>0 then 5100
+318 next
+320 b$=usr(12),202
+350 n$="usr(12),202 gets all 202 bytes":ok=len(b$)=202:gosub 9000
+360 rem check order without building strings (garbage slows swaps)
+365 ok=-1:na=0:nk=0:for j=1 to len(b$):d=asc(mid$(b$,j,1))
+370 if d>64 and d<75 then ok=ok and d=65+na-int(na/10)*10:na=na+1
+380 if d>74 and d<85 then ok=ok and d=75+nk-int(nk/10)*10:nk=nk+1
+390 next:ok=ok and na=100 and nk=100
 420 n$="each producer's bytes arrive in order":gosub 9000
 430 wa=mb+11:gosub 9400:wa=mb+12:gosub 9400
+440 n$="each usr(11) wrote all 101 bytes":ok=peek(mb+13)=101 and peek(mb+14)=101
+450 gosub 9000
+500 rem a writer to a full queue stops when the reader ends
+510 gosub 9600:c=nx:t=usr(1):gosub 9640:if usr(0)<>0 then 5200
+520 a=usr(11)"abcdefghijklmnopqrstuvwxyz",c
+530 n$="writer stops when the reader ends":ok=a=16:gosub 9000
 900 goto 9300
-5000 a$=usr(12),10:poke mb+1,len(a$):poke mb+2,-(a$="hello")
+5000 a$=usr(12),5:poke mb+1,len(a$):poke mb+2,-(a$="hello")
 5010 if peek(mb+3)=255 then q=usr(9),1:goto 5010
 5020 a$=usr(12),4:poke mb+4,-(a$="abcd")
-5030 a$=usr(12),10:poke mb+5,-(a$="efghij")
+5030 a$=usr(12),6:poke mb+5,-(a$="efghij")
 5040 q=usr(4)
 5100 a$=mid$("abcdefghijklmnopqrst",k*10-9,10):s$=""
 5110 for j=1 to 10:s$=s$+a$:next:s$=s$+"."
-5120 n=usr(11)s$,0:s$=mid$(s$,n+1):if n=0 then q=usr(9),0
-5130 if s$<>"" then 5120
+5120 n=usr(11)s$,0:poke mb+12+k,n
 5140 poke mb+10+k,1:q=usr(4)
+5200 q=usr(9),30:q=usr(4)
 8999 rem ---- shared test harness ----
 9000 if ok then ps=ps+1:print"pass ";n$:return
 9010 fl=fl+1:print"{rvon}fail{rvof} ";n$:return

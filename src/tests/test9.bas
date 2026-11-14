@@ -55,7 +55,7 @@
 5050 f=usr(2):q=usr(4)
 5100 q=usr(9),120:goto 5100
 5200 r=usr(7),66:poke mb+3,r:r=usr(7),1:q=usr(4)
-5300 a$=usr(12),5:poke mb+4,-(a$="hi"):q=usr(4)
+5300 a$=usr(12),2:poke mb+4,-(a$="hi"):q=usr(4)
 5400 if r=5 then a$=usr(12),10:poke mb+5,len(a$):q=usr(4)
 5410 a$=usr(12),2:poke mb+6,-(a$="xy"):q=usr(4)
 8999 rem ---- shared test harness ----

@@ -39,12 +39,12 @@ python3 src/tests/bas2prg.py src/tests/test1.bas release/test1
 
 | Program | Covers | Checks |
 | --- | --- | --- |
-| `test1` | `USR(0)`, `(2)`, `(3)`, `(5)`, `(6)`, `(8)`, `(11)`, `(12)`, `(13)`, `(14)` with a single task | Task ID, max tasks, task state, FORBID/PERMIT nesting, old priority and co-op returned, signal set returned, queue byte counts, a full 16-byte queue, the signal kept while bytes are left, wrap-around and byte order |
+| `test1` | `USR(0)`, `(2)`, `(3)`, `(5)`, `(6)`, `(8)`, `(11)`, `(12)`, `(13)`, `(14)` with a single task | Task ID, max tasks, task state, FORBID/PERMIT nesting, old priority and co-op returned, signal set returned, queue byte counts, writing more than 16 bytes to its own queue stopping at 16, the signal kept while bytes are left, wrap-around and byte order |
 | `test2` | `USR(1)`, `USR(4)`, `USR(14)` | Parent and child return values, child's copy of the parent's variables, a task ending itself, ending another task, a freed slot reused, a child starting with its parent's priority and co-op |
 | `test3` | `USR(9)` | 1s and 5s sleeps timed with the CIA TOD clock, timer signal returned, other tasks running during a sleep, `USR(9),0` yielding, two sleepers waking in order |
 | `test4` | `USR(7)`, `USR(8)` | Wait state, signals outside the mask not waking, the waking signal returned, a pending signal ending a wait at once, unmatched signals kept, yield, application signal 8 |
 | `test5` | `USR(10)` | Any bit set, AND mask, EOR mask. Part 2 runs WAITM in task 2 and task 9 at once (the old `POKER0` overflow) |
-| `test6` | `USR(11)`, `USR(12)` between tasks | Consumer waiting on an empty queue, partial reads, each task reading only its own queue, two producers pushing 101 bytes each through a 16-byte queue with retries and keeping their order |
+| `test6` | `USR(11)`, `USR(12)` between tasks | Consumer waiting on an empty queue, partial reads, each task reading only its own queue, two producers writing 101 bytes each in one `USR(11)` through a 16-byte queue while one `USR(12),202` reads them in order, a writer to a full queue stopping when the reader ends |
 | `test7` | `USR(2)`, `USR(3)`, `USR(5)`, `USR(6)` | A higher priority starving lower ones, equal priority in separate co-ops sharing time, one co-op running one task, the co-opted state, FORBID stopping pre-emption, other tasks pre-empting each other while a forbidden task sleeps |
 | `test8` | Scheduler and co-op owners | A lone task waking from a sleep and a yield, and showing running (2) afterwards; a co-op mate not cutting in after a lone yield; a busy owner blocking its mate (7); a pre-empted owner showing 8; ending or moving the owner freeing the co-op |
 | `test9` | Former open issues | The FORBID count leaking into another task across a wait, or outliving a task that ends while forbidden; a reused slot inheriting the old task's timer, signals and priority; a queue signal with an empty queue; two waiting `USR(12)` calls keeping their own lengths; `USR(12),0` overwriting strings |
@@ -52,9 +52,9 @@ python3 src/tests/bas2prg.py src/tests/test1.bas release/test1
 
 Most `knownbugs` choices hang or crash the machine while their issue is open. Reset after each.
 
-### Results with the Nov 11 code
+### Results with the Nov 13 code
 
-Run headless in VICE on Nov 11, with per-task queues: all 96 checks pass. The per-task queues fixed issue 2, so `test9`'s four queue checks now pass.
+Run headless in VICE on Nov 13, with per-task queues that wait for room and for bytes: all 95 checks pass.
 
 `knownbugs` on the same day:
 

@@ -21,16 +21,18 @@
 410 n$="usr(8) returns signal set":ok=a=1 and b=3:gosub 9000
 500 a=usr(11)"abc",0:n$="usr(11) abc returns 3":ok=a=3:gosub 9000
 510 s=usr(8),0,0:n$="usr(11) posts signal 16":ok=(s and 16)=16:gosub 9000
-520 b$=usr(12),2:n$="usr(12),2 returns ab":ok=b$="ab":gosub 9000
-530 b$=usr(12),5:n$="usr(12),5 returns c":ok=b$="c":gosub 9000
-540 s=usr(8),0,0:n$="usr(12) clears signal 16":ok=(s and 16)=0:gosub 9000
-550 a=usr(11)"",0:n$="usr(11) empty string is 0":ok=a=0:gosub 9000
-600 b$="":for k=1 to 200:b$=b$+chr$(65+k-int(k/26)*26):next
-610 a=usr(11)b$,0:c=usr(11)b$,0
-620 n$="queue holds 255 (200+55)":ok=a=200 and c=55:gosub 9000
-630 c$=usr(12),255:n$="usr(12),255 gets 255":ok=len(c$)=255:gosub 9000
-640 ok=left$(c$,200)=b$ and right$(c$,55)=left$(b$,55)
-650 n$="queued bytes come out in order":gosub 9000
+520 b$=usr(12):n$="usr(12) returns the message abc":ok=b$="abc":gosub 9000
+550 a=usr(11)"",0:b$=usr(12):n$="empty message: 0 sent, empty read"
+555 ok=a=0 and b$="":gosub 9000
+600 b$="abcdefghijklmno":a=usr(11)b$,0:c=usr(11)"",0
+620 n$="15 bytes fill own queue, then -1":ok=a=15 and c=-1:gosub 9000
+630 c$=usr(12):n$="usr(12) gets the 15 bytes":ok=c$=b$:gosub 9000
+640 a=usr(11)"0123456",0:c=usr(11)"789",0:c$=usr(12):d$=usr(12)
+660 n$="messages keep their boundaries"
+662 ok=a=7 and c=3 and c$="0123456" and d$="789":gosub 9000
+670 a=usr(11)"abcdefg",0:c=usr(11)"hijklmn",0:e=usr(11)"",0
+675 c$=usr(12):d$=usr(12):n$="two 7s fill it, wrap, keep order"
+680 ok=a=7 and c=7 and e=-1 and c$="abcdefg" and d$="hijklmn":gosub 9000
 900 goto 9300
 8999 rem ---- shared test harness ----
 9000 if ok then ps=ps+1:print"pass ";n$:return

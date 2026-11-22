@@ -29,6 +29,7 @@ CHKCOM          = $AEFD         ; check for a comma, else ?SYNTAX ERROR
 AYINT           = $B1BF         ; FAC to signed 16-bit integer in FACMO/FACLO
 FCERR           = $B248         ; ?ILLEGAL QUANTITY ERROR
 SNGFLT          = $B3A2         ; return unsigned byte Y as the USR() result
+GIVAYF          = $B391         ; return signed integer A (hi) Y (lo) as the result
 STRSPA          = $B47D         ; allocate a string of length A, descriptor in DSCTMP
 PUTNEW          = $B4CA         ; return the string in DSCTMP as the result
 PREAM           = $B761         ; (not used)
@@ -55,7 +56,7 @@ USRTBL          .word USR_GETTID-1      ; USR(0)
                 .word USR_SLEEP-1       ; USR(9),JIFFIES
                 .word USR_WAITM-1       ; USR(10)ADDR,AND[,EOR]
                 .word USR_NQ-1          ; USR(11)STR,TASK
-                .word USR_DQ-1          ; USR(12),LEN
+                .word USR_DQ-1          ; USR(12)
                 .word USR_MAXTASKS-1    ; USR(13)
                 .word USR_STATE-1       ; USR(14),TASK
 USRTBL_END
@@ -127,7 +128,7 @@ USR_FORK
                 LDA #TS_READY
                 STA TASK_STATE0,X
 
-; Start the new task clean: no sleep timer, signals or wait mask left
+; Start the new task clean: no sleep timer, signals, wait mask or queue left
 ; over from the slot's last task, and the parent's priority and co-op.
 ; Interrupts are still off, so INT can't post to the slot meanwhile.
                 LDA #$00
@@ -135,6 +136,10 @@ USR_FORK
                 STA SLEEP1,X
                 STA SIGNAL0,X
                 STA WAIT0,X
+                STA QHEAD0,X            ; and an empty queue
+                STA QLEN0,X
+                LDA #NO_TASK            ; not writing to a queue
+                STA NQ_TO0,X
                 LDY TID
                 LDA PRI0,Y
                 STA PRI0,X
@@ -260,7 +265,7 @@ USR_SETCOOP     JSR GETTASK
 ; USR(7),MASK - wait for any signal in MASK. Always passes through the
 ;       scheduler, so it is a yield point even if a signal is already
 ;       there. Returns the signals in MASK that woke the task.
-;       Signals: $80 reserved, $40 timer, $20 memory, $10 queue,
+;       Signals: $80 free, $40 timer, $20 memory, $10 queue,
 ;       $01, $02, $04 and $08 for applications.
 ; Switches tasks: yes
 ;------------------------------------------------------------------------
@@ -331,67 +336,59 @@ USR_WAITM       JSR GETNUM              ; POKER = address, X = AND mask
                 JMP SNGFLT
 
 ;------------------------------------------------------------------------
-; USR(11)STR,TASK - add STR to the global queue and signal TASK.
-;       Returns the number of bytes added (fewer if the queue fills).
-;       Does not reschedule: a task waiting in USR(12) wakes the next
-;       time the scheduler runs, normally the next jiffy.
-;       Duplicates ENQUEUE.
+; USR(11)STR,TASK - send STR to TASK's queue as one message. Any task
+;       can send to any task. Waits until the queue has room for it.
+;       TASK gets QUEUE_SIGNAL, and runs at once if it was waiting and
+;       its priority allows. STR "" sends an empty message.
+;       Returns LEN(STR), or -1 if it was not sent: TASK is the running
+;       task and its own queue lacks room, or TASK ended while we waited.
+; Errors: ?ILLEGAL QUANTITY ERROR if LEN(STR) is over 15
+; Switches tasks: yes, while the queue lacks room, or when TASK was
+;       waiting
 ;------------------------------------------------------------------------
 USR_NQ          JSR FRMEVL
                 JSR LEN1                ; Y = length, INDEX1 = address
-                STY NEWL
+                CPY #QMSGMAX+1
+                BCC +
+                JMP FCERR               ; messages are 0-15 bytes
 
-                LDA INDEX1+1            ; GETTASK's expression evaluation
-                                        ; can change INDEX1
++               TYA                     ; keep them on our stack: GETTASK's
+                PHA                     ; expression evaluation can change
+                LDA INDEX1+1            ; INDEX1, and another task can run
                 PHA
                 LDA INDEX1+0
                 PHA
 
-                JSR GETTASK             ; task to signal
-                STX NEWH
+                JSR GETTASK             ; X = task whose queue gets STR
 
                 PLA
                 STA INDEX1+0
                 PLA
                 STA INDEX1+1
-
-                JSR FORBID
-                LDX QTAIL
-                LDY NEWL
-                BEQ _empty              ; empty string: nothing to enqueue
-                LDY #$00
--               LDA (INDEX1),Y
-                STA QDATA0,X
-                INX
-                INY
-                CPX QHEAD
-                BEQ +                   ; queue full
-                CPY NEWL
-                BNE -
-                BEQ ++                  ; always taken
-+               DEX                     ; full: take back the last byte
-                DEY
-+               STX QTAIL
-
-                LDX NEWH
-                LDA #QUEUE_SIGNAL
-                SEI
-                ORA SIGNAL0,X
-                STA SIGNAL0,X
-                CLI
-
-_empty          JSR PERMIT
-                JMP SNGFLT              ; Y = bytes enqueued
+                PLA
+                TAY
+                JSR ENQUEUE
+                LDA #$00
+                BCC +
+                LDA #$FF                ; not sent: -1
+                TAY
++               JMP GIVAYF              ; A/Y = length, or -1
 
 ;------------------------------------------------------------------------
-; USR(12),LEN - take up to LEN bytes from the global queue as a string.
-;       Waits if the queue is empty, unless LEN is 0. Open issue 2: a
-;       task woken with the queue empty returns an empty string.
-; Switches tasks: yes, when the queue is empty
+; USR(12) - receive the next message from the running task's own
+;       queue as a string, waiting until there is one. An empty
+;       message returns "". (With timeouts, a timeout will return ""
+;       too.)
+; Switches tasks: yes, while the queue is empty, and when a writer was
+;       waiting for room
 ;------------------------------------------------------------------------
-USR_DQ          JSR COMBYT              ; X = LEN
-                TXA
-                JSR DEQUEUE
+USR_DQ          JSR DQ_WAIT             ; A = message length
+                JSR STRSPA              ; string of exactly that length
+                LDA DSCTMP+1            ; only we read our queue, so the
+                STA INDEX1+0            ; message is still the next one
+                LDA DSCTMP+2
+                STA INDEX1+1
+                JSR DQ_COPY
                 ; Drop USR()'s own return address from the stack: it
                 ; checks for a numeric result (?TYPE MISMATCH ERROR)
                 PLA
@@ -413,6 +410,9 @@ USR_REMTASK     LDX TID
                 JSR COOP_RELEASE        ; free its co-op so its other tasks can run
                 LDA #TS_INVALID
                 STA TASK_STATE0,Y
+                TYA
+                TAX
+                JSR POST_WRITERS        ; writers to its queue give up
                 CLI
                 JSR UM_TS_PROC          ; never comes back if the task ended itself
                 LDY #$00

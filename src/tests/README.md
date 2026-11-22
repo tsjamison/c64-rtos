@@ -39,22 +39,22 @@ python3 src/tests/bas2prg.py src/tests/test1.bas release/test1
 
 | Program | Covers | Checks |
 | --- | --- | --- |
-| `test1` | `USR(0)`, `(2)`, `(3)`, `(5)`, `(6)`, `(8)`, `(11)`, `(12)`, `(13)`, `(14)` with a single task | Task ID, max tasks, task state, FORBID/PERMIT nesting, old priority and co-op returned, signal set returned, queue byte counts, a full 255-byte queue, byte order |
+| `test1` | `USR(0)`, `(2)`, `(3)`, `(5)`, `(6)`, `(8)`, `(11)`, `(12)`, `(13)`, `(14)` with a single task | Task ID, max tasks, task state, FORBID/PERMIT nesting, old priority and co-op returned, signal set returned, sending and receiving a message, an empty message, a 15-byte message filling its own queue and the next send returning -1, message boundaries kept, two 7-byte messages filling the queue and wrapping round |
 | `test2` | `USR(1)`, `USR(4)`, `USR(14)` | Parent and child return values, child's copy of the parent's variables, a task ending itself, ending another task, a freed slot reused, a child starting with its parent's priority and co-op |
 | `test3` | `USR(9)` | 1s and 5s sleeps timed with the CIA TOD clock, timer signal returned, other tasks running during a sleep, `USR(9),0` yielding, two sleepers waking in order |
 | `test4` | `USR(7)`, `USR(8)` | Wait state, signals outside the mask not waking, the waking signal returned, a pending signal ending a wait at once, unmatched signals kept, yield, application signal 8 |
 | `test5` | `USR(10)` | Any bit set, AND mask, EOR mask. Part 2 runs WAITM in task 2 and task 9 at once (the old `POKER0` overflow) |
-| `test6` | `USR(11)`, `USR(12)` between tasks | Consumer waiting on an empty queue, partial reads, two producers whose writes must arrive whole |
+| `test6` | `USR(11)`, `USR(12)` between tasks | Consumer waiting on an empty queue, two messages read separately, each task reading only its own queue, two producers sending ten 10-byte messages each (so writers wait for room) and every message arriving whole, a writer to a full queue getting -1 when the reader ends, an empty message waking a waiting reader |
 | `test7` | `USR(2)`, `USR(3)`, `USR(5)`, `USR(6)` | A higher priority starving lower ones, equal priority in separate co-ops sharing time, one co-op running one task, the co-opted state, FORBID stopping pre-emption, other tasks pre-empting each other while a forbidden task sleeps |
 | `test8` | Scheduler and co-op owners | A lone task waking from a sleep and a yield, and showing running (2) afterwards; a co-op mate not cutting in after a lone yield; a busy owner blocking its mate (7); a pre-empted owner showing 8; ending or moving the owner freeing the co-op |
-| `test9` | Open-issue checks | The FORBID count leaking into another task across a wait, or outliving a task that ends while forbidden; a reused slot inheriting the old task's timer, signals and priority; a queue signal with an empty queue; two waiting `USR(12)` calls keeping their own lengths; `USR(12),0` overwriting strings |
-| `knownbugs` | Issues a test can't check safely | A menu: FORK with no free slot, `USR(200)`, a task ID past the arrays, a co-op over 15, the idle border stripes. Each choice says what fixed and open look like |
+| `test9` | Former open issues | The FORBID count leaking into another task across a wait, or outliving a task that ends while forbidden; a reused slot inheriting the old task's timer, signals and priority; a queue signal with an empty queue; two waiting `USR(12)` calls keeping their own lengths; `USR(12),0` overwriting strings |
+| `knownbugs` | Issues a test can't check safely | A menu: FORK with no free slot, `USR(200)`, a task ID past the arrays, a co-op over 15, the idle border stripes, a 16-byte `USR(11)` message. Each choice says what fixed and open look like |
 
 Most `knownbugs` choices hang or crash the machine while their issue is open. Reset after each.
 
-### Results with the Nov 10 code
+### Results with the Nov 22 code
 
-Run headless in VICE on Nov 10, with the fixes for issues 4 to 10 (see "Running headless" below): 88 of 92 checks pass. `test1`–`test8` pass in full. `test9` fails the 4 queue checks, which target open issue 2 (queues are being redesigned): "woken on empty queue, waits again", "then gets hi", "first waiter gets all 10 bytes" and "second waiter gets its xy".
+Run headless in VICE on Nov 22, with message queues (`claude/queue-spec.md` in the project): all 93 checks pass. `knownbugs` choice 6 gives `?ILLEGAL QUANTITY ERROR` as expected.
 
 `knownbugs` on the same day:
 
@@ -65,8 +65,7 @@ Run headless in VICE on Nov 10, with the fixes for issues 4 to 10 (see "Running 
 | 3 `USR(8),200,1` | `?ILLEGAL QUANTITY ERROR`: fixed (issue 10) |
 | 4 `USR(6),0,16` | `?ILLEGAL QUANTITY ERROR`: fixed |
 | 5 Idle border stripes | Border stripes while task 0 sleeps alone, screen stays on (`$D011` = `$1B`): fixed, the RTOS no longer blanks the screen |
-
-Run `test9` last in a session: while `USR(12),0` still overruns, its final check can corrupt strings.
+| 6 `USR(11)` with a 16-byte string | `?ILLEGAL QUANTITY ERROR`: messages are 0-15 bytes |
 
 ## How the tests work
 

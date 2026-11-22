@@ -1,7 +1,7 @@
 1 rem rtos test 9: open-issue checks
 2 rem forbid, slot reuse, queue edge cases.
 3 rem the last check may overwrite strings
-4 rem while usr(12),0 still overruns
+4 rem (usr(12),0 once overran strings)
 10 if z=0 then z=1:load"rtos",8,1
 20 sys 49152
 30 gosub 9900
@@ -36,7 +36,7 @@
 440 gosub 9000:ok=0
 450 if s=4 then a=usr(11)"hi",c:wa=mb+4:gosub 9400:ok=peek(mb+4)=1
 460 n$="then gets hi":gosub 9000:ws=0:gosub 9500
-500 rem two waiting usr(12) calls keep their own lengths
+500 rem two tasks waiting on their own queues
 510 gosub 9600:a=nx:r=5:t=usr(1):gosub 9640:if usr(0)<>0 then 5400
 520 c=a:ws=4:gosub 9500
 530 gosub 9600:b=nx:r=6:t=usr(1):gosub 9640:if usr(0)<>0 then 5400
@@ -45,19 +45,19 @@
 560 n$="first waiter gets all 10 bytes":ok=peek(mb+5)=10:gosub 9000
 570 q=usr(11)"xy",b:wa=mb+6:gosub 9400
 580 n$="second waiter gets its xy":ok=peek(mb+6)=1:gosub 9000
-600 rem last: usr(12),0
-610 a$="sentinel"+"":q=usr(11)"x",0:b$=usr(12),0
-620 n$="usr(12),0 returns empty string":ok=len(b$)=0:gosub 9000
-630 n$="usr(12),0 leaves strings alone":ok=a$="sentinel":gosub 9000
+600 rem last: a short read must not overwrite other strings
+610 a$="sentinel"+"":q=usr(11)"x",0:b$=usr(12)
+620 n$="usr(12) returns the 1-byte message":ok=b$="x":gosub 9000
+630 n$="usr(12) leaves other strings alone":ok=a$="sentinel":gosub 9000
 900 goto 9300
 5000 if peek(mb+1)=255 then q=usr(9),1:goto 5000
 5010 a=usr(2):b=usr(3):poke mb+2,a:q=usr(4)
 5050 f=usr(2):q=usr(4)
 5100 q=usr(9),120:goto 5100
 5200 r=usr(7),66:poke mb+3,r:r=usr(7),1:q=usr(4)
-5300 a$=usr(12),5:poke mb+4,-(a$="hi"):q=usr(4)
-5400 if r=5 then a$=usr(12),10:poke mb+5,len(a$):q=usr(4)
-5410 a$=usr(12),2:poke mb+6,-(a$="xy"):q=usr(4)
+5300 a$=usr(12):poke mb+4,-(a$="hi"):q=usr(4)
+5400 if r=5 then a$=usr(12):poke mb+5,len(a$):q=usr(4)
+5410 a$=usr(12):poke mb+6,-(a$="xy"):q=usr(4)
 8999 rem ---- shared test harness ----
 9000 if ok then ps=ps+1:print"pass ";n$:return
 9010 fl=fl+1:print"{rvon}fail{rvof} ";n$:return

@@ -1,4 +1,4 @@
-1 rem rtos test 6: queue between tasks
+1 rem rtos test 6: per-task queues
 10 if z=0 then z=1:load"rtos",8,1
 20 sys 49152
 30 gosub 9900
@@ -11,32 +11,47 @@
 150 n$="usr(11) hello returns 5":ok=a=5:gosub 9000
 160 n$="waiting task gets hello":ok=peek(mb+1)=5 and peek(mb+2)=1
 170 gosub 9000
-180 a=usr(11)"abcdefghij",c:poke mb+3,1:wa=mb+5:gosub 9400
-190 n$="usr(12),4 takes abcd":ok=peek(mb+4)=1:gosub 9000
-200 n$="usr(12),10 takes the rest":ok=peek(mb+5)=1:gosub 9000
+180 a=usr(11)"abcd",c:a=usr(11)"efghij",c:poke mb+3,1:wa=mb+5:gosub 9400
+190 n$="first message abcd":ok=peek(mb+4)=1:gosub 9000
+200 n$="second message efghij":ok=peek(mb+5)=1:gosub 9000
 210 ws=0:gosub 9500
-300 for k=1 to 2:gosub 9600:p$=chr$(64+k)
-305 t=usr(1):gosub 9640:if usr(0)<>0 then 5100
-310 next
-320 wa=mb+11:gosub 9400:wa=mb+12:gosub 9400
-330 b$=usr(12),255
-340 n$="two producers: 200 bytes":ok=len(b$)=200:gosub 9000
-350 ok=-1:na=0
-360 for k=1 to 200 step 10:c$=mid$(b$,k,10):d$=left$(c$,1)
-370 e$=d$+d$+d$+d$+d$+d$+d$+d$+d$+d$:if c$<>e$ then ok=0
-380 if d$="a" then na=na+1
-390 next
-400 n$="each usr(11) arrives in one piece":gosub 9000
-410 n$="10 from each producer":ok=na=10:gosub 9000
+220 a=usr(11)"x",0:a=usr(11)"hello",c:b$=usr(12)
+230 n$="each task reads only its own queue":ok=b$="x":gosub 9000
+300 rem two producers each send ten 10-byte messages. a message
+302 rem and its length byte take 11 of 16 bytes, so writers wait
+310 for k=1 to 2:gosub 9600
+315 t=usr(1):gosub 9640:if usr(0)<>0 then 5100
+318 next
+320 na=0:nk=0:nb=0:for j=1 to 20:m$=usr(12)
+330 if m$="abcdefghij" then na=na+1:goto 345
+335 if m$="klmnopqrst" then nk=nk+1:goto 345
+340 nb=nb+1
+345 next
+350 n$="20 whole messages, 10 from each":ok=na=10 and nk=10 and nb=0
+355 gosub 9000
+430 wa=mb+11:gosub 9400:wa=mb+12:gosub 9400
+440 n$="every usr(11) returned 10":ok=peek(mb+13)=10 and peek(mb+14)=10
+450 gosub 9000
+500 rem a writer to a full queue gets -1 when the reader ends
+510 gosub 9600:c=nx:t=usr(1):gosub 9640:if usr(0)<>0 then 5200
+520 a=usr(11)"abcdefghijklmno",c:b=usr(11)"x",c
+530 n$="full queue, reader ends: -1":ok=a=15 and b=-1:gosub 9000
+600 rem an empty message wakes a waiting reader
+610 gosub 9600:c=nx:t=usr(1):gosub 9640:if usr(0)<>0 then 5300
+620 ws=4:gosub 9500:a=usr(11)"",c:wa=mb+20:gosub 9400
+630 n$="empty message wakes a waiting reader":ok=a=0 and peek(mb+20)=1
+640 gosub 9000:ws=0:gosub 9500
 900 goto 9300
-5000 a$=usr(12),10:poke mb+1,len(a$):poke mb+2,-(a$="hello")
+5000 a$=usr(12):poke mb+1,len(a$):poke mb+2,-(a$="hello")
 5010 if peek(mb+3)=255 then q=usr(9),1:goto 5010
-5020 a$=usr(12),4:poke mb+4,-(a$="abcd")
-5030 a$=usr(12),10:poke mb+5,-(a$="efghij")
+5020 a$=usr(12):poke mb+4,-(a$="abcd")
+5030 a$=usr(12):poke mb+5,-(a$="efghij")
 5040 q=usr(4)
-5100 a$=p$+p$+p$+p$+p$+p$+p$+p$+p$+p$
-5110 for j=1 to 10:q=usr(11)a$,0:next
-5120 poke mb+10+k,1:q=usr(4)
+5100 a$=mid$("abcdefghijklmnopqrst",k*10-9,10):n=0
+5110 for j=1 to 10:q=usr(11)a$,0:n=n-(q=10):next
+5120 poke mb+12+k,n:poke mb+10+k,1:q=usr(4)
+5200 q=usr(9),30:q=usr(4)
+5300 m$=usr(12):poke mb+20,-(m$=""):q=usr(4)
 8999 rem ---- shared test harness ----
 9000 if ok then ps=ps+1:print"pass ";n$:return
 9010 fl=fl+1:print"{rvon}fail{rvof} ";n$:return

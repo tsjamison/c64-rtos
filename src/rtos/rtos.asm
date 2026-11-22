@@ -37,6 +37,7 @@ VIC_BKGND       = $D021         ; background colour
 MXTASKS         = 16            ; most tasks supported (one REU bank each)
 MXCOOPS         = 16            ; co-ops 0-15, one owner byte each
 QSIZE           = 16            ; bytes in each task's queue
+QMSGMAX         = QSIZE-1       ; longest message: a length byte + 15 bytes
 
                 .cerror MXCOOPS & (MXCOOPS-1), "MXCOOPS must be a power of two (SET_COOP masks with it)"
                 .cerror QSIZE != 16, "QINDEX shifts the task ID left 4 times"
@@ -53,8 +54,8 @@ TS_REMOVED      = 6             ; defined but not used yet
 TS_COOPTED      = 7             ; not stored: GET_STATE works these two out
 TS_PREEMPT      = 8             ; from COOP_OWNER for USR(14)
 
-; Signal masks. $01, $02, $04 and $08 are for applications.
-QSPACE_SIGNAL   = $80           ; room in the queue a task is writing to
+; Signal masks. $80 is free; $01, $02, $04 and $08 are for
+; applications.
 TIMER_SIGNAL    = $40
 WAITM_SIGNAL    = $20
 QUEUE_SIGNAL    = $10
@@ -361,27 +362,19 @@ MXPRI           .byte ?         ; scheduler: best priority found so far
 
 QHEAD0          .fill MXTASKS   ; queue: offset of the next byte to read, 0-15
 QLEN0           .fill MXTASKS   ; queue: bytes waiting, 0-16
-QTMP            .byte ?         ; QINDEX scratch (callers hold FORBID)
-NQ_TO0          .fill MXTASKS   ; USR(11): queue being written to, NO_TASK = none
-NQ_LEN0         .fill MXTASKS   ; USR(11): bytes to write
-NQ_DONE0        .fill MXTASKS   ; USR(11): bytes written so far
-NQ_ADRL0        .fill MXTASKS   ; USR(11): address of the bytes, lo
+NQ_TO0          .fill MXTASKS   ; ENQUEUE: queue being written to, NO_TASK = none
+NQ_LEN0         .fill MXTASKS   ; ENQUEUE: message length
+NQ_ADRL0        .fill MXTASKS   ; ENQUEUE: address of the message, lo
 NQ_ADRH0        .fill MXTASKS   ;   and hi
-DQ_LEN0         .fill MXTASKS   ; USR(12): bytes to read
-DQ_DONE0        .fill MXTASKS   ; USR(12): bytes read so far
-DQ_ADRL0        .fill MXTASKS   ; USR(12): address of the new string, lo
-DQ_ADRH0        .fill MXTASKS   ;   and hi
 
 OLD_IRQ         .word ?         ; previous IRQ handler, INT chains to it
 
 NEWL            .byte ?         ; scratch: NEW_TASK start address lo,
 NEWH            .byte ?         ;   hi, REU size
 FORK_FLAG       .byte ?         ; NEW_TASK: non-zero = FORK, 0 = ADD_TASK
-ENQUEUE_L       .byte ?         ; NQ_FILL scratch: length, (FORBID held)
-ENQUEUE_T       .byte ?         ;   queue owner,
-ENQUEUE_S       .byte ?         ;   bytes written before this pass
-DEQUEUE_L       .byte ?         ; DQ_TAKE scratch: bytes this pass,
-QCOUNT          .byte ?         ;   bytes copied (FORBID held)
+ENQUEUE_L       .byte ?         ; NQ_WRITE scratch: length,
+ENQUEUE_T       .byte ?         ;   queue owner (FORBID held)
+DEQUEUE_L       .byte ?         ; DQ_COPY scratch: length (FORBID held)
 QWOKE           .byte ?         ; POST_WRITERS scratch (IRQs masked)
 COOP_OWNER      .fill MXCOOPS   ; task holding each co-op, COOP_FREE = free
 

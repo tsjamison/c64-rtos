@@ -228,104 +228,120 @@ WAIT_MEMORY     LDY TID
 
 ;------------------------------------------------------------------------
 ; Queues. Each task has its own QSIZE-byte ring buffer in QDATA0, at
-; offset task ID * QSIZE. Any task can add to any task's queue; only the
-; owner takes bytes out, so only the owner moves QHEAD0 and lowers QLEN0.
-; QUEUE_SIGNAL is up while the owner's queue has bytes in it. Calls can
-; move up to 255 bytes: writers wait for QSPACE_SIGNAL when the queue is
-; full, the owner waits for QUEUE_SIGNAL when it is empty. The progress
-; of each call is kept per task (NQ_xxx0, DQ_xxx0) across the waits.
+; offset task ID * QSIZE. Any task can write to any task's queue; only
+; the owner reads it, so only the owner moves QHEAD0 and lowers QLEN0.
+;
+; A queue holds messages: a length byte (0-15), then that many bytes.
+; ENQUEUE writes a whole message or nothing, with FORBID held, so a
+; queue with any bytes in it holds at least one whole message, and
+; messages never interleave. DEQUEUE reads one whole message.
+;
+; Every queue wait is for QUEUE_SIGNAL, and every wait is a loop that
+; checks the queue again: the signal only means "something changed".
+; Writers waiting for room are found through NQ_TO0.
 ;------------------------------------------------------------------------
 
 ;------------------------------------------------------------------------
 ; QINDEX - index into QDATA0 of a byte in a task's queue.
+;       Re-entrant: keeps its scratch byte on the stack.
 ; In:   A = offset from the start of the task's buffer (masked to 0-15)
 ;       X = task ID
 ; Out:  X = index into QDATA0
-; Uses: A X QTMP (callers hold FORBID, so QTMP is not shared)
+; Uses: A X
 ;------------------------------------------------------------------------
 QINDEX          AND #QSIZE-1
-                STA QTMP
+                PHA
                 TXA
                 ASL
                 ASL
                 ASL
                 ASL
-                ORA QTMP
+                TSX
+                ORA STACK+1,X
                 TAX
+                PLA
                 RTS
 
 ;------------------------------------------------------------------------
-; ENQUEUE - write bytes to a task's queue, waiting for room as needed.
-;       Writes what fits, sends the owner QUEUE_SIGNAL (rescheduling at
-;       once if it is waiting, like SIGNAL), and if bytes are left,
-;       waits for QSPACE_SIGNAL and writes some more. NQ_DONE0 counts
-;       the bytes written so far. Stops early, without waiting, if the
-;       queue is its own (nobody else would empty it) or the owner has
-;       ended. Writers to the same queue can interleave between passes.
+; ENQUEUE - send a message to a task's queue.
+;       Waits until the queue has room for the length byte and the
+;       message, then writes both and sends the owner QUEUE_SIGNAL
+;       (rescheduling at once if it was waiting).
 ;       Not in the jump table yet. Used by USR(11).
-; In:   INDEX1 ($22/$23) = address of the data
-;       Y = length (0-255), X = task ID of the queue's owner
-; Out:  Y = bytes written (Y on entry, unless it stopped early)
+; In:   INDEX1 ($22/$23) = address of the message
+;       Y = length (0-15), X = task ID of the queue's owner
+; Out:  C clear: sent, Y = length
+;       C set: not sent, Y = $FF. Happens when the length is over 15,
+;       when the queue is the caller's own and lacks room (nobody else
+;       would empty it), or when the owner ends while we wait.
 ; Uses: A X Y
-; Switches tasks: yes, when the queue is full, and when the owner was
-;       waiting for bytes
+; Switches tasks: yes, while the queue lacks room, and when the owner
+;       was waiting
 ; Note: ends with CLI
 ;------------------------------------------------------------------------
-ENQUEUE         TYA
+ENQUEUE         CPY #QMSGMAX+1
+                BCS _toolong
+                TYA
                 LDY TID
                 STA NQ_LEN0,Y
-                TXA
-                STA NQ_TO0,Y            ; readers now send us QSPACE_SIGNAL
                 LDA INDEX1+0
                 STA NQ_ADRL0,Y
                 LDA INDEX1+1
                 STA NQ_ADRH0,Y
-                LDA #$00
-                STA NQ_DONE0,Y
-
-_loop           JSR FORBID              ; one writer at a time
-                JSR NQ_FILL
-                TAX                     ; X = bytes written this pass
-                JSR PERMIT              ; (keeps X)
                 TXA
-                BEQ +                   ; none: no signal
+                STA NQ_TO0,Y            ; from now on, the owner signals us
+                                        ; when it reads
+
+_loop           JSR FORBID              ; no other writer can get in
                 LDX TID
-                LDY NQ_TO0,X
-                LDA #QUEUE_SIGNAL
-                JSR SIGNAL
-+               LDX TID
-                LDA NQ_DONE0,X
-                CMP NQ_LEN0,X
-                BEQ _done               ; all written
-                LDA NQ_TO0,X            ; full: wait for room, unless
-                CMP TID                 ; it's our own queue
-                BEQ _done
+                LDY NQ_TO0,X            ; Y = queue owner
+                LDA NQ_LEN0,X
+                CLC
+                ADC QLEN0,Y             ; fits if QLEN0 + length + 1 <= 16
+                CMP #QSIZE
+                BCC _write
+                JSR PERMIT              ; no room yet
+
+                LDX TID
+                LDA NQ_TO0,X
+                CMP TID
+                BEQ _fail               ; our own queue: nobody would empty it
                 TAY
-                LDA TASK_STATE0,Y       ; or its owner has ended
-                BEQ _done
-                LDA #QSPACE_SIGNAL
-                JSR WAIT
+                LDA TASK_STATE0,Y
+                BEQ _fail               ; the owner has ended
+                LDA #QUEUE_SIGNAL       ; wait for the owner to read. A signal
+                JSR WAIT                ; posted already returns at once
                 JMP _loop
 
-_done           LDX TID
-                SEI
+_write          JSR NQ_WRITE
+                JSR PERMIT
+                LDX TID
+                LDY NQ_TO0,X            ; Y = queue owner
                 LDA #NO_TASK
                 STA NQ_TO0,X
-                LDA SIGNAL0,X           ; drop a QSPACE_SIGNAL left over
-                AND #~QSPACE_SIGNAL
-                STA SIGNAL0,X
-                CLI
-                LDY NQ_DONE0,X
+                LDA #QUEUE_SIGNAL
+                JSR SIGNAL
+                LDX TID
+                LDY NQ_LEN0,X
+                CLC
+                RTS
+
+_fail           LDX TID
+                LDA #NO_TASK
+                STA NQ_TO0,X
+_toolong        LDY #$FF
+                SEC
                 RTS
 
 ;------------------------------------------------------------------------
-; NQ_FILL - ENQUEUE's inner part: copy as many of the running task's
-;       remaining bytes as fit into the queue, and update NQ_DONE0.
-; In:   NQ_xxx0 for the running task; FORBID held
-; Out:  A = bytes written this pass
+; NQ_WRITE - ENQUEUE's inner part: append the length byte and the
+;       message to the owner's queue. FORBID is held and the message
+;       fits.
+; In:   NQ_xxx0 for the running task
+; Out:  -
 ; Uses: A X Y INDEX1
 ;------------------------------------------------------------------------
-NQ_FILL         LDX TID
+NQ_WRITE        LDX TID
                 LDA NQ_TO0,X
                 STA ENQUEUE_T
                 LDA NQ_LEN0,X
@@ -334,148 +350,131 @@ NQ_FILL         LDX TID
                 STA INDEX1+0
                 LDA NQ_ADRH0,X
                 STA INDEX1+1
-                LDY NQ_DONE0,X          ; Y = next byte to write
-                STY ENQUEUE_S
+
+                LDA ENQUEUE_L           ; the length byte first
+                JSR _append
+                LDY #$00
 -               CPY ENQUEUE_L
-                BEQ _end                ; all written
+                BEQ +
+                LDA (INDEX1),Y
+                JSR _append
+                INY
+                BNE -                   ; always taken (Y <= 15)
++               RTS
+
+; Append A to the owner's queue (keeps Y)
+_append         PHA
                 LDX ENQUEUE_T
                 LDA QLEN0,X
-                CMP #QSIZE
-                BCS _end                ; queue full
-                ADC QHEAD0,X            ; C clear: offset of the free byte
+                CLC
+                ADC QHEAD0,X            ; offset of the first free byte
                 JSR QINDEX
-                LDA (INDEX1),Y
+                PLA
                 STA QDATA0,X
                 LDX ENQUEUE_T
                 INC QLEN0,X
-                INY
-                BNE -                   ; always taken (Y stops at 255)
-_end            TYA
-                LDX TID
-                STA NQ_DONE0,X
-                SEC
-                SBC ENQUEUE_S
                 RTS
 
 ;------------------------------------------------------------------------
-; DEQUEUE - read A bytes from the running task's own queue as a new
-;       BASIC string. Takes what is there, and if it needs more, waits
-;       for QUEUE_SIGNAL and takes some more. DQ_DONE0 counts the bytes
-;       read so far. Each pass sends QSPACE_SIGNAL to the tasks writing
-;       to the queue, rescheduling at once if one was waiting for room.
-;       Used by USR(12).
-; In:   A = bytes wanted (0-255; 0 returns an empty string at once)
-; Out:  Y = bytes read (A on entry)
-;       DSCTMP ($61-$63) = string descriptor (length, address)
+; DQ_WAIT - wait until the running task's queue holds a message.
+;       Used by DEQUEUE and USR(12).
+; In:   -
+; Out:  A = length of the next message (0-15)
+; Uses: A X Y
+; Switches tasks: yes, while the queue is empty
+;------------------------------------------------------------------------
+DQ_WAIT         LDX TID
+                LDA QLEN0,X
+                BNE +
+                LDA #QUEUE_SIGNAL       ; empty: wait for a writer. A stale
+                JSR WAIT                ; signal just brings us back here
+                JMP DQ_WAIT
++               LDA QHEAD0,X            ; only we read, so this message
+                JSR QINDEX              ; stays put
+                LDA QDATA0,X
+                RTS
+
+;------------------------------------------------------------------------
+; DQ_COPY - read the next message from the running task's queue,
+;       which must hold one (see DQ_WAIT). Then sends QUEUE_SIGNAL to
+;       the tasks waiting to write to this queue, rescheduling at once
+;       if one was waiting.
+; In:   INDEX1 ($22/$23) = where to put the message (room for 15 bytes)
+; Out:  Y = message length, C clear
+; Uses: A X Y
+; Switches tasks: yes, when a writer was waiting for room
+; Note: ends with CLI
+;------------------------------------------------------------------------
+DQ_COPY         JSR FORBID              ; DEQUEUE_L is shared
+                LDX TID
+                LDA QHEAD0,X
+                JSR QINDEX
+                LDA QDATA0,X
+                STA DEQUEUE_L           ; message length
+                LDY #$00
+-               CPY DEQUEUE_L
+                BEQ +
+                LDX TID
+                TYA
+                SEC                     ; +1: skip the length byte
+                ADC QHEAD0,X
+                JSR QINDEX
+                LDA QDATA0,X
+                STA (INDEX1),Y
+                INY
+                BNE -                   ; always taken (Y <= 15)
+
++               LDX TID                 ; take out length byte + message
+                LDA QHEAD0,X
+                SEC
+                ADC DEQUEUE_L
+                AND #QSIZE-1
+                STA QHEAD0,X
+                LDA QLEN0,X
+                CLC
+                SBC DEQUEUE_L
+                STA QLEN0,X
+
+                SEI
+                JSR POST_WRITERS        ; tell writers there is room
+                CLI
+                TAX                     ; X = non-zero if one was waiting
+                LDY DEQUEUE_L
+                JSR PERMIT              ; (keeps X and Y)
+                TXA
+                BEQ +
+                TYA
+                JSR UM_TS_PROC          ; let a waiting writer run now
+                TAY                     ; (UM_TS_PROC keeps A)
++               CLC
+                RTS
+
+;------------------------------------------------------------------------
+; DEQUEUE - read the next message from the running task's own queue,
+;       waiting until there is one.
+;       Not in the jump table yet. USR(12) uses DQ_WAIT and DQ_COPY.
+; In:   INDEX1 ($22/$23) = where to put the message (room for 15 bytes)
+; Out:  Y = message length (0-15), C clear
+;       (with timeouts, C set will mean nothing was read)
 ; Uses: A X Y
 ; Switches tasks: yes, while the queue is empty, and when a writer was
 ;       waiting for room
 ; Note: ends with CLI
 ;------------------------------------------------------------------------
-DEQUEUE         LDX TID
-                STA DQ_LEN0,X
-                JSR STRSPA              ; allocate the whole string now
-                LDX TID
-                LDA DSCTMP+1
-                STA DQ_ADRL0,X
-                LDA DSCTMP+2
-                STA DQ_ADRH0,X
-                LDA #$00
-                STA DQ_DONE0,X
-
-_loop           LDX TID
-                LDA DQ_DONE0,X
-                CMP DQ_LEN0,X
-                BEQ _done               ; all read
-                LDA QLEN0,X
-                BNE _take
-                LDA #QUEUE_SIGNAL       ; empty: wait for a writer. A stale
-                JSR WAIT                ; signal just brings us back here
-                JMP _loop
-
-_take           JSR FORBID              ; DQ_TAKE's scratch is shared
-                JSR DQ_TAKE
-                JSR PERMIT
-                SEI
-                LDX TID
-                JSR POST_WRITERS        ; tell writers there is room
-                CLI
-                BEQ _loop               ; none was waiting for it
-                JSR UM_TS_PROC          ; let a waiting writer run
-                JMP _loop
-
-_done           LDA DQ_LEN0,X           ; the descriptor for PUTNEW
-                STA DSCTMP+0
-                TAY
-                LDA DQ_ADRL0,X
-                STA DSCTMP+1
-                LDA DQ_ADRH0,X
-                STA DSCTMP+2
-                RTS
+DEQUEUE         LDA INDEX1+1            ; keep the address on our stack
+                PHA                     ; while we wait
+                LDA INDEX1+0
+                PHA
+                JSR DQ_WAIT
+                PLA
+                STA INDEX1+0
+                PLA
+                STA INDEX1+1
+                JMP DQ_COPY
 
 ;------------------------------------------------------------------------
-; DQ_TAKE - DEQUEUE's inner part: copy as many bytes as are waiting and
-;       still wanted into the string, and update DQ_DONE0, QHEAD0,
-;       QLEN0 and QUEUE_SIGNAL.
-; In:   DQ_xxx0 for the running task; FORBID held
-; Out:  -
-; Uses: A X Y DSCTMP+1/+2 (as the string pointer)
-; Note: ends with CLI
-;------------------------------------------------------------------------
-DQ_TAKE         LDX TID
-                LDA DQ_ADRL0,X
-                STA DSCTMP+1
-                LDA DQ_ADRH0,X
-                STA DSCTMP+2
-                LDA DQ_LEN0,X
-                SEC
-                SBC DQ_DONE0,X          ; bytes still wanted
-                CMP QLEN0,X
-                BCC +
-                LDA QLEN0,X             ; no more than are waiting
-+               STA DEQUEUE_L
-                LDY DQ_DONE0,X          ; Y = next byte of the string
-                LDA #$00
-                STA QCOUNT
--               LDA QCOUNT
-                CMP DEQUEUE_L
-                BEQ _copied
-                LDX TID
-                CLC
-                ADC QHEAD0,X            ; offset of the next queued byte
-                JSR QINDEX
-                LDA QDATA0,X
-                STA (DSCTMP+1),Y
-                INY
-                INC QCOUNT
-                BNE -                   ; always taken (QCOUNT <= QSIZE)
-
-_copied         LDX TID
-                TYA
-                STA DQ_DONE0,X
-                SEI                     ; a writer pre-empting us must see
-                LDA QHEAD0,X            ; QHEAD0 and QLEN0 change together
-                CLC
-                ADC DEQUEUE_L
-                AND #QSIZE-1
-                STA QHEAD0,X
-                LDA QLEN0,X
-                SEC
-                SBC DEQUEUE_L
-                STA QLEN0,X
-                BEQ +
-                LDA #QUEUE_SIGNAL       ; bytes left: keep the signal up
-                ORA SIGNAL0,X
-                BNE ++                  ; always taken
-+               LDA #~QUEUE_SIGNAL      ; empty: clear it
-                AND SIGNAL0,X
-+               STA SIGNAL0,X
-                CLI
-                RTS
-
-;------------------------------------------------------------------------
-; POST_WRITERS - send QSPACE_SIGNAL to every task writing to a queue.
-;       Used when the owner takes bytes out, and when it ends (writers
+; POST_WRITERS - send QUEUE_SIGNAL to every task waiting to write to
+;       a queue. Used when the owner reads, and when it ends (writers
 ;       then see it has ended and give up).
 ; In:   X = task ID of the queue's owner; IRQs masked
 ; Out:  A = non-zero if one of them was waiting for it (Z clear)
@@ -490,7 +489,7 @@ POST_WRITERS    TYA
 -               TXA
                 CMP NQ_TO0,Y
                 BNE +
-                LDA #QSPACE_SIGNAL
+                LDA #QUEUE_SIGNAL
                 ORA SIGNAL0,Y
                 STA SIGNAL0,Y
                 AND WAIT0,Y
@@ -502,6 +501,7 @@ POST_WRITERS    TYA
                 TAY
                 LDA QWOKE
                 RTS
+
 
 ;------------------------------------------------------------------------
 ; NEW_TASK - common code for FORK and ADD_TASK.

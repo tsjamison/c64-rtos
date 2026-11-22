@@ -25,8 +25,8 @@ The following RTOS BASIC functions are implemented:
 | SIGNAL     | USR(8),TASK,SIG_SET   | Signals a Waiting Task                    |
 | SLEEP      | USR(9),JIFFIES        | Sleeps current task for x Jiffies         |
 | WAITM      | USR(10)ADDR,AND[,EOR] | Multitasking-friendly WAIT: sleep until memory matches |
-| NQ         | USR(11)STR,TASK       | eNQueue a string on TASK's queue          |
-| DQ         | USR(12),LEN           | DeQueue LEN chars from own queue          |
+| NQ         | USR(11)STR,TASK       | eNQueue a message on TASK's queue         |
+| DQ         | USR(12)               | DeQueue the next message from own queue   |
 | MAXTASKS   | USR(13)               | Maximum number of tasks                   |
 | STATE      | USR(14),TASK          | Returns Task State of TASK                |
 
@@ -157,21 +157,21 @@ Parameters:
     EOR  
 Returns: Bitmask of the result
 
-### USR(11)STR,TASK - Enqueue STR on TASK's queue
+### USR(11)STR,TASK - Send STR as a message to TASK's queue
 
-Each task has its own queue of 16 bytes. Any task can add to any task's queue, its own included; only the task itself can read it, with USR(12).
+Each task has its own 16-byte queue of messages. Any task can send to any task's queue, its own included; only the task itself can read it, with USR(12).
+A message is 0-15 bytes. In the queue it takes one length byte plus its bytes, so one 15-byte message, two 7-byte messages or sixteen empty ones fill a queue.
 
 Parameters:  
-    STR - String to add to the queue, up to 255 bytes  
-    TASK - Task whose queue gets the string. It is sent the queue signal (16)  
-Returns: Number of bytes added, normally LEN(STR).
+    STR - The message, 0-15 bytes. Longer gives ?ILLEGAL QUANTITY ERROR  
+    TASK - Task whose queue gets the message. It is sent the queue signal (16)  
+Returns: LEN(STR), or -1 if the message was not sent.
 
-If the queue fills up, USR(11) adds what fits, waits until TASK has read some, adds more, and so on until the whole string is in.
-It stops early, returning the bytes added so far, if TASK ends, or if TASK is the running task and its own queue is full (nobody else could empty it).
-An empty string adds nothing, returns 0 and does not signal TASK.
+A message is sent whole or not at all, so messages from different tasks never mix.
+If the queue doesn't have room, USR(11) waits until TASK has read enough.
+It returns -1 without sending if TASK is the running task and its own queue lacks room (nobody else could empty it), or if TASK ends while it waits.
+An empty string sends an empty message: use it to wake a task waiting in USR(12).
 If TASK is waiting in USR(12), it runs straight away if its priority allows.
-When several tasks write to the same queue and have to wait for room, their bytes can be interleaved.
-While waiting for room, a task uses signal 128 (queue space).
 
 Example:
 ```
@@ -181,17 +181,21 @@ b=usr(11)b$,0
 ```
 a will have 5, and b will have 6
 
-### USR(12),LEN - Dequeue a string of at most length LEN
+### USR(12) - Receive the next message from the task's own queue
 
-Parameters:  
-    LEN - Number of bytes to read, 0-255  
-Returns:  a string of LEN bytes.
+Parameters: <None>  
+Returns: the message as a string ("" for an empty message).
 
-Reads the running task's own queue. It takes what is there, and whenever the queue is empty and more bytes are wanted, it waits for more, until it has all LEN bytes. A queue holds 16 bytes, but LEN can be larger: writers wait for room as it reads.
-LEN of 0 returns an empty string immediately, without waiting.
-The queue signal (16) stays set while bytes are left in the queue.
+Waits until the running task's queue holds a message, then returns it. Each call returns exactly one message, as it was sent.
 A new task starts with an empty queue.
+The queue signal (16) only means "the queue changed": it is not kept set while messages are waiting, so check with USR(12), not USR(7),16.
 
+Example:
+```
+a=usr(11)"hello",0:a=usr(11)"world!",0
+a$=usr(12):b$=usr(12)
+```
+a$ will have "hello", and b$ will have "world!"
 
 ### USR(13) - Return Maximum number of tasks the system supports
 
@@ -219,7 +223,7 @@ Returns: task state
 
 ## Notes
 
-Some parameters are checked and give ?ILLEGAL QUANTITY ERROR when out of range: the USR number (0-14), task IDs (0 to USR(13)-1) for USR(4), USR(5), USR(6), USR(8), USR(11) and USR(14), and co-op numbers (0-15). Other values, such as priorities and signal masks, are not checked.
+Some parameters are checked and give ?ILLEGAL QUANTITY ERROR when out of range: the USR number (0-14), task IDs (0 to USR(13)-1) for USR(4), USR(5), USR(6), USR(8), USR(11) and USR(14), co-op numbers (0-15) and USR(11) message lengths (0-15). Other values, such as priorities and signal masks, are not checked.
 Not every possible situation has been tested.
 Requires an REU. Each task uses one 64KB REU bank, up to 16 tasks: a 1MB or larger REU gives 16 tasks, 512KB gives 8, 256KB gives 4 and 128KB gives 2.
 

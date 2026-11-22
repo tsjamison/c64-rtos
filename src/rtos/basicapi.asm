@@ -29,6 +29,7 @@ CHKCOM          = $AEFD         ; check for a comma, else ?SYNTAX ERROR
 AYINT           = $B1BF         ; FAC to signed 16-bit integer in FACMO/FACLO
 FCERR           = $B248         ; ?ILLEGAL QUANTITY ERROR
 SNGFLT          = $B3A2         ; return unsigned byte Y as the USR() result
+GIVAYF          = $B391         ; return signed integer A (hi) Y (lo) as the result
 STRSPA          = $B47D         ; allocate a string of length A, descriptor in DSCTMP
 PUTNEW          = $B4CA         ; return the string in DSCTMP as the result
 PREAM           = $B761         ; (not used)
@@ -55,7 +56,7 @@ USRTBL          .word USR_GETTID-1      ; USR(0)
                 .word USR_SLEEP-1       ; USR(9),JIFFIES
                 .word USR_WAITM-1       ; USR(10)ADDR,AND[,EOR]
                 .word USR_NQ-1          ; USR(11)STR,TASK
-                .word USR_DQ-1          ; USR(12),LEN
+                .word USR_DQ-1          ; USR(12)
                 .word USR_MAXTASKS-1    ; USR(13)
                 .word USR_STATE-1       ; USR(14),TASK
 USRTBL_END
@@ -264,7 +265,7 @@ USR_SETCOOP     JSR GETTASK
 ; USR(7),MASK - wait for any signal in MASK. Always passes through the
 ;       scheduler, so it is a yield point even if a signal is already
 ;       there. Returns the signals in MASK that woke the task.
-;       Signals: $80 queue space, $40 timer, $20 memory, $10 queue,
+;       Signals: $80 free, $40 timer, $20 memory, $10 queue,
 ;       $01, $02, $04 and $08 for applications.
 ; Switches tasks: yes
 ;------------------------------------------------------------------------
@@ -335,19 +336,23 @@ USR_WAITM       JSR GETNUM              ; POKER = address, X = AND mask
                 JMP SNGFLT
 
 ;------------------------------------------------------------------------
-; USR(11)STR,TASK - write STR (up to 255 bytes) to TASK's queue. Any
-;       task can write to any task's queue. A queue holds QSIZE (16)
-;       bytes: when it is full, waits until TASK reads some, then writes
-;       more. TASK gets QUEUE_SIGNAL, and runs at once if it was waiting
-;       for bytes and its priority allows. Returns the bytes written:
-;       LEN(STR), or fewer if TASK ended, or if TASK is the running task
-;       and its own queue filled (nobody else could empty it).
-; Switches tasks: yes, when the queue is full or TASK was waiting
+; USR(11)STR,TASK - send STR to TASK's queue as one message. Any task
+;       can send to any task. Waits until the queue has room for it.
+;       TASK gets QUEUE_SIGNAL, and runs at once if it was waiting and
+;       its priority allows. STR "" sends an empty message.
+;       Returns LEN(STR), or -1 if it was not sent: TASK is the running
+;       task and its own queue lacks room, or TASK ended while we waited.
+; Errors: ?ILLEGAL QUANTITY ERROR if LEN(STR) is over 15
+; Switches tasks: yes, while the queue lacks room, or when TASK was
+;       waiting
 ;------------------------------------------------------------------------
 USR_NQ          JSR FRMEVL
                 JSR LEN1                ; Y = length, INDEX1 = address
+                CPY #QMSGMAX+1
+                BCC +
+                JMP FCERR               ; messages are 0-15 bytes
 
-                TYA                     ; keep them on our stack: GETTASK's
++               TYA                     ; keep them on our stack: GETTASK's
                 PHA                     ; expression evaluation can change
                 LDA INDEX1+1            ; INDEX1, and another task can run
                 PHA
@@ -363,18 +368,27 @@ USR_NQ          JSR FRMEVL
                 PLA
                 TAY
                 JSR ENQUEUE
-                JMP SNGFLT              ; Y = bytes added
+                LDA #$00
+                BCC +
+                LDA #$FF                ; not sent: -1
+                TAY
++               JMP GIVAYF              ; A/Y = length, or -1
 
 ;------------------------------------------------------------------------
-; USR(12),LEN - read LEN bytes (0-255) from the running task's own
-;       queue as a string. Waits whenever the queue is empty until all
-;       LEN bytes have arrived. LEN 0 returns an empty string at once.
-; Switches tasks: yes, while the queue is empty, or when a writer was
+; USR(12) - receive the next message from the running task's own
+;       queue as a string, waiting until there is one. An empty
+;       message returns "". (With timeouts, a timeout will return ""
+;       too.)
+; Switches tasks: yes, while the queue is empty, and when a writer was
 ;       waiting for room
 ;------------------------------------------------------------------------
-USR_DQ          JSR COMBYT              ; X = LEN
-                TXA
-                JSR DEQUEUE
+USR_DQ          JSR DQ_WAIT             ; A = message length
+                JSR STRSPA              ; string of exactly that length
+                LDA DSCTMP+1            ; only we read our queue, so the
+                STA INDEX1+0            ; message is still the next one
+                LDA DSCTMP+2
+                STA INDEX1+1
+                JSR DQ_COPY
                 ; Drop USR()'s own return address from the stack: it
                 ; checks for a numeric result (?TYPE MISMATCH ERROR)
                 PLA

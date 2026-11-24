@@ -342,38 +342,51 @@ _toolong        LDY #$FF
 ; Uses: A X Y INDEX1
 ;------------------------------------------------------------------------
 NQ_WRITE        LDX TID
-                LDA NQ_TO0,X
-                STA ENQUEUE_T
                 LDA NQ_LEN0,X
                 STA ENQUEUE_L
                 LDA NQ_ADRL0,X
                 STA INDEX1+0
                 LDA NQ_ADRH0,X
                 STA INDEX1+1
+                LDA NQ_TO0,X
+                STA ENQUEUE_T
 
-                LDA ENQUEUE_L           ; the length byte first
-                JSR _append
+                TAY
+                ASL
+                ASL
+                ASL
+                ASL
+                STA NEWH
+                CLC
+                LDA QHEAD0,Y
+                ADC QLEN0,Y
+                AND #QSIZE-1
+                ORA NEWH
+                TAX
+
+; EnQueue Length
+                LDA ENQUEUE_L
+                STA QDATA0,X
                 LDY #$00
+
 -               CPY ENQUEUE_L
                 BEQ +
-                LDA (INDEX1),Y
-                JSR _append
-                INY
-                BNE -                   ; always taken (Y <= 15)
-+               RTS
 
-; Append A to the owner's queue (keeps Y)
-_append         PHA
-                LDX ENQUEUE_T
-                LDA QLEN0,X
-                CLC
-                ADC QHEAD0,X            ; offset of the first free byte
-                JSR QINDEX
-                PLA
+                INX
+                TXA 
+                AND #QSIZE-1
+                ORA NEWH
+                TAX
+                LDA (INDEX1),Y
                 STA QDATA0,X
-                LDX ENQUEUE_T
-                INC QLEN0,X
+                INY
+                BNE -
++               LDX ENQUEUE_T
+                LDA QLEN0,X
+                ADC ENQUEUE_L
+                STA QLEN0,X
                 RTS
+
 
 ;------------------------------------------------------------------------
 ; DQ_WAIT - wait until the running task's queue holds a message.

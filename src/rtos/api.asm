@@ -480,15 +480,7 @@ DQ_COPY         JSR FORBID              ; DEQUEUE_L and SCRATCH are shared
 ;       waiting for room
 ; Note: ends with CLI
 ;------------------------------------------------------------------------
-DEQUEUE         LDA INDEX1+1            ; keep the address on our stack
-                PHA                     ; while we wait
-                LDA INDEX1+0
-                PHA
-                JSR DQ_WAIT
-                PLA
-                STA INDEX1+0
-                PLA
-                STA INDEX1+1
+DEQUEUE         JSR DQ_WAIT
                 JMP DQ_COPY
 
 ;------------------------------------------------------------------------

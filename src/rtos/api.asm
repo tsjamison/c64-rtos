@@ -339,7 +339,7 @@ _toolong        LDY #$FF
 ;       fits.
 ; In:   NQ_xxx0 for the running task
 ; Out:  -
-; Uses: A X Y INDEX1
+; Uses: A X Y INDEX1 SCRATCH
 ;------------------------------------------------------------------------
 NQ_WRITE        LDX TID
                 LDA NQ_LEN0,X
@@ -351,42 +351,41 @@ NQ_WRITE        LDX TID
                 LDA NQ_TO0,X
                 STA ENQUEUE_T
 
-                TAY
+; X = index of the first free byte: owner * 16 + (head + length) mod 16
+                TAY                     ; Y = owner, for QHEAD0/QLEN0
                 ASL
                 ASL
                 ASL
                 ASL
-                STA NEWH
+                STA SCRATCH             ; owner's buffer: owner * QSIZE
                 CLC
                 LDA QHEAD0,Y
                 ADC QLEN0,Y
                 AND #QSIZE-1
-                ORA NEWH
+                ORA SCRATCH
                 TAX
 
-; EnQueue Length
-                LDA ENQUEUE_L
+                LDA ENQUEUE_L           ; the length byte first
                 STA QDATA0,X
                 LDY #$00
-
 -               CPY ENQUEUE_L
                 BEQ +
-
-                INX
-                TXA 
+                INX                     ; next byte, wrapping inside the
+                TXA                     ; owner's buffer
                 AND #QSIZE-1
-                ORA NEWH
+                ORA SCRATCH
                 TAX
                 LDA (INDEX1),Y
                 STA QDATA0,X
                 INY
-                BNE -
-+               LDX ENQUEUE_T
+                BNE -                   ; always taken (Y <= 15)
+
++               LDX ENQUEUE_T           ; QLEN0 += length + 1
                 LDA QLEN0,X
+                SEC                     ; +1 for the length byte
                 ADC ENQUEUE_L
                 STA QLEN0,X
                 RTS
-
 
 ;------------------------------------------------------------------------
 ; DQ_WAIT - wait until the running task's queue holds a message.
@@ -414,24 +413,31 @@ DQ_WAIT         LDX TID
 ;       if one was waiting.
 ; In:   INDEX1 ($22/$23) = where to put the message (room for 15 bytes)
 ; Out:  Y = message length, C clear
-; Uses: A X Y
+; Uses: A X Y SCRATCH
 ; Switches tasks: yes, when a writer was waiting for room
 ; Note: ends with CLI
 ;------------------------------------------------------------------------
-DQ_COPY         JSR FORBID              ; DEQUEUE_L is shared
+DQ_COPY         JSR FORBID              ; DEQUEUE_L and SCRATCH are shared
                 LDX TID
-                LDA QHEAD0,X
-                JSR QINDEX
+                TXA
+                ASL
+                ASL
+                ASL
+                ASL
+                STA SCRATCH             ; our buffer: TID * QSIZE
+                LDA QHEAD0,X            ; (0-15)
+                ORA SCRATCH
+                TAX                     ; X = index of the length byte
                 LDA QDATA0,X
                 STA DEQUEUE_L           ; message length
                 LDY #$00
 -               CPY DEQUEUE_L
                 BEQ +
-                LDX TID
-                TYA
-                SEC                     ; +1: skip the length byte
-                ADC QHEAD0,X
-                JSR QINDEX
+                INX                     ; next byte, wrapping inside our
+                TXA                     ; buffer
+                AND #QSIZE-1
+                ORA SCRATCH
+                TAX
                 LDA QDATA0,X
                 STA (INDEX1),Y
                 INY
@@ -533,8 +539,8 @@ POST_WRITERS    TYA
 ;------------------------------------------------------------------------
 NEW_TASK        JSR FORBID
 
-                STA NEWL
-                STY NEWH
+                STA SCRATCH+0           ; start address
+                STY SCRATCH+1
                 STX FORK_FLAG
 
 ; Save the stack pointer
@@ -556,15 +562,15 @@ NEW_TASK        JSR FORBID
                 LDA #<END_TASK-1
                 PHA
 
-; Push a fake interrupt frame that starts the new task at NEWH/NEWL
+; Push a fake interrupt frame that starts the new task at SCRATCH
 _frame          LDA FORK_FLAG
                 BEQ +
                 PLA                     ; FORK: drop the caller's return
                                         ; address (@todo: see FORK)
                 PLA
-+               LDA NEWH
++               LDA SCRATCH+1
                 PHA
-                LDA NEWL
+                LDA SCRATCH+0
                 PHA
                 LDA #FAKE_P
                 PHA

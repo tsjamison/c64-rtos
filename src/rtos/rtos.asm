@@ -125,11 +125,11 @@ INITIALIZE
                 LDY #>VERSION
                 JSR STROUT
                 JSR REU_SIZE            ; X/A = number of 64KB banks
-                STX NEWL                ; (NEWL/NEWH used as scratch)
-                STA NEWH
+                STX SCRATCH+0
+                STA SCRATCH+1
                 JSR LINPRT
-                LDX NEWL
-                LDA NEWH
+                LDX SCRATCH+0
+                LDA SCRATCH+1
                 BEQ +
                 LDX #$FF                ; 256 or more banks
 +               CPX #$00
@@ -369,8 +369,12 @@ NQ_ADRH0        .fill MXTASKS   ;   and hi
 
 OLD_IRQ         .word ?         ; previous IRQ handler, INT chains to it
 
-NEWL            .byte ?         ; scratch: NEW_TASK start address lo,
-NEWH            .byte ?         ;   hi, REU size
+; SCRATCH - shared scratch word. Only for code that holds FORBID (or
+; runs with IRQs masked, or in INITIALIZE) and doesn't switch tasks
+; while it needs the value. INT must not use it.
+; Used by: INITIALIZE (REU size), NEW_TASK (start address),
+;          NQ_WRITE and DQ_COPY (queue buffer offset)
+SCRATCH         .word ?
 FORK_FLAG       .byte ?         ; NEW_TASK: non-zero = FORK, 0 = ADD_TASK
 ENQUEUE_L       .byte ?         ; NQ_WRITE scratch: length,
 ENQUEUE_T       .byte ?         ;   queue owner (FORBID held)

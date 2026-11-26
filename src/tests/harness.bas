@@ -2,7 +2,7 @@
 9000 if ok then ps=ps+1:print"pass ";n$:return
 9010 fl=fl+1:print"{rvon}fail{rvof} ";n$:return
 9100 rem fork a busy keeper task so a sleeping task always has
-9101 rem another task to switch to (avoids open issue 1)
+9101 rem another task to switch to while it sleeps
 9110 gosub 9600:kp=nx:t=usr(1):gosub 9640:if usr(0)<>0 then 9150
 9120 return
 9150 poke mb+62,(peek(mb+62)+1)and 255:goto 9150

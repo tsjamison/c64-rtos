@@ -480,8 +480,9 @@ DQ_COPY         JSR FORBID              ; DEQUEUE_L and SCRATCH are shared
 ;       waiting for room
 ; Note: ends with CLI
 ;------------------------------------------------------------------------
-DEQUEUE         JSR DQ_WAIT
-                JMP DQ_COPY
+DEQUEUE         JSR DQ_WAIT             ; INDEX1 survives the wait: zero
+                JMP DQ_COPY             ; page is part of each task's
+                                        ; own saved memory
 
 ;------------------------------------------------------------------------
 ; POST_WRITERS - send QUEUE_SIGNAL to every task waiting to write to

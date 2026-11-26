@@ -113,8 +113,14 @@ NO_TASK         = $FF           ; NTID value when the scheduler found no task
 
 ;------------------------------------------------------------------------
 ; INITIALIZE - print the banner, size the REU, hook the IRQ and USR()
-;              vectors and reset all task tables. Holds FORBID
-;              throughout, so no task switch can land in the middle.
+;              vectors and reset all task tables.
+;              Sets the FORBID level to 1 first (stored, not counted up:
+;              on a first run TS_ENABLE holds whatever was in memory), so
+;              no task switch can happen until it is done. IRQs are
+;              masked from the installed check through the table reset,
+;              so INT never sees half-reset tables; nothing in between
+;              prints, because the KERNAL's screen output ends with CLI.
+;              The REU size and task count are printed at the end.
 ;              Running it again does not hook the IRQ twice or size the
 ;              REU again (it reuses SIZEL/SIZEH), but it forgets every
 ;              task: the caller carries on as task 0, at priority 0,
@@ -131,7 +137,8 @@ INITIALIZE      LDA #1
 
 ; Installed already? Checked once, here: if the IRQ vector points at
 ; INT, this is a second run. Then SIZEL/SIZEH still hold the REU size,
-; and the IRQ must not be hooked again.
+; and the IRQ must not be hooked again. IRQs stay masked until the
+; tables are reset.
                 SEI
                 LDA CINV
                 CMP #<INT
@@ -146,7 +153,7 @@ _install        JSR REU_SIZE            ; X/A = number of 64KB banks
 
                 ORA SIZEL
                 BNE +
-                CLI
+                CLI                     ; not installing after all
                 LDA #<REU_REQ
                 LDY #>REU_REQ
                 JMP STROUT

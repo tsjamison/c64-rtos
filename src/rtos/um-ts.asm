@@ -31,9 +31,10 @@ UM_TS_PROC      TSX
 
 ;------------------------------------------------------------------------
 ; UM_TS - the scheduler. Entered with an interrupt frame on the stack:
-;       from INT once a jiffy while the running task's FORBID level is 0
-;       (pre-emption), or from UM_TS_PROC when a task waits, yields,
-;       signals another task or ends.
+;       from INT on an IRQ (normally once a jiffy) while the running
+;       task's FORBID level is 0 (pre-emption), or from UM_TS_PROC when
+;       a task waits, yields, signals another task, reads its queue or
+;       ends.
 ;
 ;       1. Wake: each WAIT task that has a signal it waits for becomes
 ;          READY. (INT posts the timer and WAITM signals.)

@@ -263,13 +263,14 @@ Task 0 forks first, then sets the new task's priority and co-op. A new task star
 ## Planned features
 
 ### Features planned for 1st release v1.0:
+* Add optional Timeout parameters - WAITM EOR parameter will now be required
+* Join (Wait for a task to end)
 * Standardize Assembly-Language API (Jump Table)
 * Create Assembly-language demos to demonstrate Assembly/BASIC multitasking interopability
 
-### Features planned for 2nd release v2.0:
-* Join (Wait for a task to end)
-* Better demos
-* Cleaned up source code
+### Open Questions for v1.0:
+* Should USR table be re-organized to group similar functions together?
+* Instead of USR, should new BASIC tokens be created? Multiple ways to hook new keywords. This library should be compatible with other BASIC expanders like EPYX BASIC Toolkit or Simon's BASIC.
 
 ### Features not planned, but considered:
 * Tasks may share BASIC Banks with other tasks

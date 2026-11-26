@@ -113,48 +113,26 @@ NO_TASK         = $FF           ; NTID value when the scheduler found no task
 
 ;------------------------------------------------------------------------
 ; INITIALIZE - print the banner, size the REU, hook the IRQ and USR()
-;              vectors and reset all task tables. Running it again does
-;              not hook the IRQ twice, but it forgets every task: the
-;              caller carries on as task 0, so run it from task 0.
+;              vectors and reset all task tables. Holds FORBID
+;              throughout, so no task switch can land in the middle.
+;              Running it again does not hook the IRQ twice or size the
+;              REU again (it reuses SIZEL/SIZEH), but it forgets every
+;              task: the caller carries on as task 0, at priority 0,
+;              co-op 0 and FORBID level 0.
 ; In:   -
 ; Out:  -       (returns early, not installed, if no REU is found)
 ; Uses: A X Y
 ;------------------------------------------------------------------------
-INITIALIZE
+INITIALIZE      LDA #1
+                STA TS_ENABLE           ; FORBID, also valid on a first run
                 LDA #<VERSION
                 LDY #>VERSION
                 JSR STROUT
-                JSR REU_SIZE            ; X/A = number of 64KB banks
-                STX SCRATCH+0
-                STA SCRATCH+1
-                JSR LINPRT
-                LDX SCRATCH+0
-                LDA SCRATCH+1
-                BEQ +
-                LDX #$FF                ; 256 or more banks
-+               CPX #$00
-                BNE +
-                LDA #<REU_REQ
-                LDY #>REU_REQ
-                JMP STROUT
 
-+               CPX #MXTASKS
-                BCC +
-                LDX #MXTASKS
-+               STX MAX_TASKS
-                LDA #<MAXTASK
-                LDY #>MAXTASK
-                JSR STROUT
-                LDA #$00
-                LDX MAX_TASKS
-                JSR LINPRT
-                LDA #<RTOS_INSTALLED
-                LDY #>RTOS_INSTALLED
-                JSR STROUT
-
+; Installed already? Checked once, here: if the IRQ vector points at
+; INT, this is a second run. Then SIZEL/SIZEH still hold the REU size,
+; and the IRQ must not be hooked again.
                 SEI
-
-; Hook the IRQ vector, unless it already points at INT
                 LDA CINV
                 CMP #<INT
                 BNE _install
@@ -162,7 +140,17 @@ INITIALIZE
                 CMP #>INT
                 BEQ _installed
 
-_install        LDA CINV
+_install        JSR REU_SIZE            ; X/A = number of 64KB banks
+                STX SIZEL
+                STA SIZEH
+
+                ORA SIZEL
+                BNE +
+                LDA #<REU_REQ
+                LDY #>REU_REQ
+                JMP STROUT
+
++               LDA CINV
                 STA OLD_IRQ
                 LDA CINV+1
                 STA OLD_IRQ+1
@@ -172,8 +160,18 @@ _install        LDA CINV
                 LDA #>INT
                 STA CINV+1
 
+_installed
+                LDX SIZEL
+                BNE +
+                LDX #$FF                ; 256 or more banks
++               CPX #MXTASKS
+                BCC +
+                LDX #MXTASKS
++               STX MAX_TASKS
+
+
 ; Reset variables
-_installed      LDA #$00
+                LDA #$00
                 STA VIC_BORDER          ; border = task 0's colour
                 STA TID                 ; task 0 is running
                 LDY MAX_TASKS
@@ -217,6 +215,28 @@ _installed      LDA #$00
                 STA TS_ENABLE           ; task switching allowed
 
                 CLI
+
+; Print REU size and max tasks
+                LDA #<REU_BANKS
+                LDY #>REU_BANKS
+                JSR STROUT
+
+                LDA SIZEH
+                LDX SIZEL
+                JSR LINPRT
+
+                LDA #<MAXTASK
+                LDY #>MAXTASK
+                JSR STROUT
+
+                LDA #$00
+                LDX MAX_TASKS
+                JSR LINPRT
+
+                LDA #<RTOS_INSTALLED
+                LDY #>RTOS_INSTALLED
+                JSR STROUT
+
                 RTS
 
 
@@ -330,8 +350,9 @@ _chain          JMP (OLD_IRQ)
 ;------------------------------------------------------------------------
 ; Strings
 ;------------------------------------------------------------------------
-VERSION         .null "C64 RTOS V0.9 COPYRIGHT 2026 TIM JAMISON", "REU BANKS FOUND: "
-REU_REQ         .null 13, "REU REQUIRED. RTOS NOT INSTALLED."
+VERSION         .null "C64 RTOS V0.9 COPYRIGHT 2026 TIM JAMISON"
+REU_REQ         .null "REU REQUIRED. RTOS NOT INSTALLED.", 13
+REU_BANKS       .null "REU BANKS FOUND: "
 MAXTASK         .null 13, "TASKS AVAILABLE: "
 RTOS_INSTALLED  .null 13, "RTOS INSTALLED.", 13
 
@@ -370,8 +391,8 @@ NQ_ADRH0        .fill MXTASKS   ;   and hi
 OLD_IRQ         .word ?         ; previous IRQ handler, INT chains to it
 
 ; SCRATCH - shared scratch word. Only for code that holds FORBID (or
-; runs with IRQs masked, or in INITIALIZE) and doesn't switch tasks
-; while it needs the value. INT must not use it.
+; runs with IRQs masked) and doesn't switch tasks while it needs the
+; value. INT must not use it.
 ; Used by: INITIALIZE (REU size), NEW_TASK (start address),
 ;          NQ_WRITE and DQ_COPY (queue buffer offset)
 SCRATCH         .word ?
@@ -388,7 +409,7 @@ INT_POKER       .word ?         ; INT scratch: saved POKER
 QDATA0          .fill MXTASKS*QSIZE ; queue data, QSIZE bytes per task
 REU_TEMP        .fill 257       ; REU_SIZE: probe byte + one saved byte per bank
 REU_LAST        .byte ?         ; REU_SIZE: last bank number read back
-SIZEL           .byte ?         ; REU_SIZE: banks found, lo
-SIZEH           .byte ?         ; REU_SIZE: banks found, hi
+SIZEL           .byte ?         ; REU_SIZE: banks found, lo (INITIALIZE
+SIZEH           .byte ?         ;   reuses them on a second run), hi
 
                 .cerror * > $D000, "RTOS overlaps the I/O area at $D000"

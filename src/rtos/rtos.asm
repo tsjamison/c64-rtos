@@ -146,6 +146,7 @@ _install        JSR REU_SIZE            ; X/A = number of 64KB banks
 
                 ORA SIZEL
                 BNE +
+                CLI
                 LDA #<REU_REQ
                 LDY #>REU_REQ
                 JMP STROUT

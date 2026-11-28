@@ -6,8 +6,8 @@
 40 print"test 7: priority, co-op, forbid":print
 100 gosub 9100
 110 q=usr(5),0,2
-120 gosub 9600:a=nx:r=1:t=usr(1):gosub 9640:if usr(0)<>0 then 5000
-130 gosub 9600:b=nx:r=2:t=usr(1):gosub 9640:if usr(0)<>0 then 5000
+120 gosub 9600:a=nx:r=1:t=usr(1):gosub 9640:if t=255 then 5000
+130 gosub 9600:b=nx:r=2:t=usr(1):gosub 9640:if t=255 then 5000
 200 q=usr(5),a,1:poke mb+1,0:poke mb+2,0:k0=peek(mb+62)
 210 q=usr(9),60
 220 n$="pri 1 task runs while pri 2 sleeps":ok=peek(mb+1)=1:gosub 9000
@@ -17,8 +17,8 @@
 300 poke mb+1,0:poke mb+2,0:q=usr(9),60
 310 n$="equal pri, own co-ops: both run"
 320 ok=peek(mb+1)=1 and peek(mb+2)=1:gosub 9000
-400 gosub 9600:c=nx:r=3:t=usr(1):gosub 9640:if usr(0)<>0 then 5000
-410 gosub 9600:d=nx:cn=c:r=4:t=usr(1):gosub 9640:if usr(0)<>0 then 5000
+400 gosub 9600:c=nx:r=3:t=usr(1):gosub 9640:if t=255 then 5000
+410 gosub 9600:d=nx:cn=c:r=4:t=usr(1):gosub 9640:if t=255 then 5000
 420 poke mb+3,0:poke mb+4,0:q=usr(9),60
 430 n$="same co-op: only one busy task runs"
 440 ok=peek(mb+3)+peek(mb+4)=1:gosub 9000
@@ -40,7 +40,7 @@
 9010 fl=fl+1:print"{rvon}fail{rvof} ";n$:return
 9100 rem fork a busy keeper task so a sleeping task always has
 9101 rem another task to switch to while it sleeps
-9110 gosub 9600:kp=nx:t=usr(1):gosub 9640:if usr(0)<>0 then 9150
+9110 gosub 9600:kp=nx:t=usr(1):gosub 9640:if t=255 then 9150
 9120 return
 9150 poke mb+62,(peek(mb+62)+1)and 255:goto 9150
 9300 rem end: remove keeper, print summary
@@ -60,10 +60,10 @@
 9601 rem gives it: its own by default, so new tasks are pre-emptive
 9610 gosub 9650:if nx=0 then print"no free task slot":end
 9630 cn=nx:return
-9640 rem after a fork the child has the parent's co-op and priority.
+9640 rem after t=usr(1) the child has the parent's co-op and pri.
 9641 rem the parent moves it to co-op cn, priority 0. the child can't
 9642 rem run before that: it is in the parent's co-op
-9645 if usr(0)=0 then q=usr(6),nx,cn:q=usr(5),nx,0
+9645 if t<>255 then q=usr(6),t,cn:q=usr(5),t,0
 9646 return
 9650 rem nx = slot the next fork will use, settings untouched
 9660 nx=0:for i=1 to mt-1:s=usr(14),i:if s=0 and nx=0 then nx=i

@@ -19,16 +19,18 @@ The following RTOS BASIC functions are implemented:
 | FORBID     | USR(2)                | forbid task rescheduling until a matching PERMIT |
 | PERMIT     | USR(3)                | permit task rescheduling                         |
 | REMTASK    | USR(4)[,TASK]         | End Task                                         |
-| SETPRI     | USR(5),TASK,PRI       | Set Task Priority. High priority tasks prevent low priority tasks from running |
-| SETCOOP    | USR(6),TASK,COOP      | Set Task Co-op. Tasks in same co-op are co-operative. Tasks in different co-ops are pre-emptive |
-| WAIT       | USR(7),MASK           | Set Task to sleep, waiting for a signal in the mask to wake it up |
+| SETPRI     | USR(5),TASK[,PRI]     | Get/Set Task Priority. High priority tasks prevent low priority tasks from running |
+| SETCOOP    | USR(6),TASK[,COOP]    | Get/Set Task Co-op. Tasks in same co-op are co-operative. Tasks in different co-ops are pre-emptive |
+| WAIT       | USR(7),MASK[,TIMEOUT] | Set Task to sleep, waiting for a signal in the mask to wake it up |
 | SIGNAL     | USR(8),TASK,SIG_SET   | Signals a Waiting Task                    |
 | SLEEP      | USR(9),JIFFIES        | Sleeps current task for x Jiffies         |
-| WAITM      | USR(10)ADDR,AND[,EOR] | Multitasking-friendly WAIT: sleep until memory matches |
-| NQ         | USR(11)STR,TASK       | eNQueue a message on TASK's queue         |
-| DQ         | USR(12)               | DeQueue the next message from own queue   |
+| WAITM      | USR(10)ADDR,AND[,EOR[,TIMEOUT]] | Multitasking-friendly WAIT: sleep until memory matches |
+| NQ         | USR(11)STR,TASK[,TIMEOUT] | eNQueue a message on TASK's queue         |
+| DQ         | USR(12)[,TIMEOUT]     | DeQueue the next message from own queue   |
 | MAXTASKS   | USR(13)               | Maximum number of tasks                   |
 | STATE      | USR(14),TASK          | Returns Task State of TASK                |
+| SETQTM     | USR(5),TASK[,QUANTUM] | Get/Set Task Quantum. 1=FreeRTOS, 4=AmigaOS 2.0+, 16=AmigaOS 1.3 |
+
 
 ### USR(0) - GET TASK ID
 Returns Task ID of the currently running process.
@@ -53,7 +55,7 @@ t=usr(1)
 ```
 This duplicates the current process, with the task number getting returned.
 This results in now two copies of the program getting executed at the same time.
-The original copy usr(1) returns the calling task's ID. The newly created copy returns a newly allocated ID.
+The original copy usr(1) returns the newly allocated ID. The newly created copy returns 255.
 
 The new task starts with the parent's priority and co-op, and with no pending signals, sleep timer or wait. Because it shares the parent's co-op, it can't run until the parent waits or yields, or until it is moved to another co-op with USR(6).
 
@@ -263,6 +265,7 @@ Task 0 forks first, then sets the new task's priority and co-op. A new task star
 ## Planned features
 
 ### Features planned for 1st release v1.0:
+* Change SETPRI and SETCOOP to be GET/SET with new setting as an optional parameter.
 * Add optional Timeout parameters - WAITM EOR parameter will now be required
 * Join (Wait for a task to end)
 * Move TI and TI$ from per task to global.

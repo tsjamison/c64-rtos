@@ -3,9 +3,9 @@
    30 sys 49152
    40 poke 53281,0
    50 gosub 1000
-   70 for i=1 to usr(13)-1
-   80 if t=0 then t=usr(1)
-   90 next
+   70 for i=1 to usr(13)-1:c=usr(1):if c=255 then i=99:rem new task: stop forking
+   80 next
+   90 t=usr(0)
    95 if t=0 then gosub 2000:rem forks start in task 0's co-op: set them now
   100 on t+1 goto 3000,4000,5000,5000,5000,5000,5000,5000
   110 on t-7 goto 5000,5000,5000,5000,5000,5000,5000,5000

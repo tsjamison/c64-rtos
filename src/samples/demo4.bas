@@ -14,8 +14,8 @@
 53 rem set task 1 to coop 1
 54 rem idle task loops forever
 60 t=usr(1)
-70 if t=0 then z=usr(5),1,1:x=usr(6),1,1
-80 if t=0 then 80
+70 if t<>255 then z=usr(5),t,1:x=usr(6),t,1
+80 if t<>255 then 80
 90 print"use joystick port 2"
 100 d=usr(10)56320,31,31-j
 110 j=31-peek(56320) and 31

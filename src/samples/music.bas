@@ -20,15 +20,15 @@
 910 sys 49152
 920 rem fork the tasks. each starts in task 0's
 921 rem co-op, so none runs until task 0 moves it
-941 t=usr(1):ift=1then1000
-942 t=usr(1):ift=2then2000
-943 t=usr(1):ift=3then3000
-944 p=usr(5),1,3:rem task1 priority=3
-945 p=usr(5),2,2:rem task2 priority=2
-946 p=usr(5),3,1:rem task3 priority=1
-947 c=usr(6),1,1:rem task1 coop=1
-948 c=usr(6),2,2:rem task2 coop=2
-949 c=usr(6),3,3:rem task3 coop=3
+941 t1=usr(1):ift1=255then1000
+942 t2=usr(1):ift2=255then2000
+943 t3=usr(1):ift3=255then3000
+944 p=usr(5),t1,3:rem task1 priority=3
+945 p=usr(5),t2,2:rem task2 priority=2
+946 p=usr(5),t3,1:rem task3 priority=1
+947 c=usr(6),t1,1:rem task1 coop=1
+948 c=usr(6),t2,2:rem task2 coop=2
+949 c=usr(6),t3,3:rem task3 coop=3
 950 end
 
 

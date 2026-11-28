@@ -84,8 +84,9 @@ USR_HANDLER     JSR AYINT
 
 
 ;------------------------------------------------------------------------
-; USR(1) - FORK. Returns the parent's ID to the parent and the new ID
-;       to the child. The child starts with the parent's priority and
+; USR(1) - FORK. Returns the new task's ID to the parent, and 255 to
+;       the new task (like fork(), which returns 0 to the child: 0 is a
+;       valid task ID here). The child starts with the parent's priority and
 ;       co-op, FORBID level 0, and no sleep timer, signals or wait.
 ;       Sharing the parent's co-op, it can't run until the parent
 ;       waits or yields, or moves it to another co-op with USR(6).
@@ -100,10 +101,10 @@ USR_FORK
                 LDY TID
                 STA SP0,Y
 
-; Push a fake interrupt frame that starts the child at USR_GETTID
-                LDA #>USR_GETTID
+; Push a fake interrupt frame that starts the child at _forked
+                LDA #>_forked
                 PHA
-                LDA #<USR_GETTID
+                LDA #<_forked
                 PHA
                 LDA #FAKE_P
                 PHA
@@ -164,8 +165,13 @@ _copied         LDY NTID
                 LDY TID
                 LDX SP0,Y
                 TXS
-                CLI
-                ; falls through: the parent returns its own ID
+                LDY NTID                ; parent gets the new task's ID. Read
+                CLI                     ; before CLI: the scheduler uses NTID
+                JMP SNGFLT
+
+; The new task starts here, from the frame pushed above
+_forked         LDY #NO_TASK            ; new task gets 255
+                JMP SNGFLT
 
 ;------------------------------------------------------------------------
 ; USR(0) - return the running task's ID
@@ -417,50 +423,3 @@ USR_REMTASK     LDX TID
                 JSR UM_TS_PROC          ; never comes back if the task ended itself
                 LDY #$00
                 JMP SNGFLT
-
-
-;------------------------------------------------------------------------
-; Not reachable: these routines are not in USRTBL
-;------------------------------------------------------------------------
-USR_BORDER      JSR COMBYT
-                LDY VIC_BORDER
-                STX VIC_BORDER
-                JMP SNGFLT
-
-USR_BACKGND     JSR COMBYT
-                LDY VIC_BKGND
-                STX VIC_BKGND
-                JMP SNGFLT
-
-; Save BASIC memory to REU bank X. XFER_BASIC_XY continues at
-; XFER_RET, so the JSR below is never returned to normally: its address
-; is left on the stack, and the final RTS goes back to the CLI once
-; before returning. Harmless, but JMP would do.
-BASIC_SAVE      JSR COMBYT
-                LDY #XFER_SAVE
-
-                LDA #<+
-                STA XFER_RET
-                LDA #>+
-                STA XFER_RET+1
-
-                SEI
-                JSR XFER_BASIC_XY
-+               CLI
-                RTS
-
-; Load BASIC memory from REU bank X. Same JSR quirk as BASIC_SAVE; a
-; load also replaces the stack page, so the RTS returns wherever the
-; loaded task's stack says.
-BASIC_LOAD      JSR COMBYT
-                LDY #XFER_LOAD
-
-                LDA #<+
-                STA XFER_RET
-                LDA #>+
-                STA XFER_RET+1
-
-                SEI
-                JSR XFER_BASIC_XY
-+               CLI
-                RTS
